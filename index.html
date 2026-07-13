@@ -127,6 +127,11 @@ svg text{font-family:var(--sans);fill:#333}
 /* ---------- callout / note ---------- */
 .note{background:#fff;border-left:4px solid var(--indigo);padding:.9rem 1.1rem;margin-top:1.4rem;font-size:.9rem;max-width:60ch}
 .note b{font-weight:700}
+.clocks3{display:grid;grid-template-columns:repeat(3,1fr);gap:2rem;margin-top:1.4rem}
+.clk .cn{font-family:var(--serif);font-size:2.6rem;line-height:1}
+.clk .cl{font-size:.9rem;color:#333;margin-top:.5rem;max-width:32ch}
+.clk .cl sup{color:var(--charcoal);font-size:.62rem}
+@media(max-width:760px){.clocks3{grid-template-columns:1fr;gap:1.4rem}}
 .split{display:grid;grid-template-columns:1fr 1fr;gap:2rem;margin-top:1.6rem}
 @media(max-width:760px){.split{grid-template-columns:1fr}}
 .big2{display:flex;gap:2.5rem;flex-wrap:wrap;margin-top:1.4rem}
@@ -292,16 +297,22 @@ footer a{color:#fff}
   <div class="wrap">
     <div class="sec-kicker"><span class="sec-num">09</span> &nbsp;The clocks</div>
     <h2 class="sec">Where the time actually goes</h2>
-    <div class="split">
-      <div>
-        <div class="bn" style="font-family:var(--serif);font-size:2.6rem;line-height:1;color:var(--indigo)" id="window">—</div>
-        <div class="bl" style="font-size:.9rem;margin-top:.4rem">median active life of a list, from established to expiration — the window an eligible candidate has to be reached</div>
+    <p class="lead">The slow step is not the paperwork at the end. It is upstream — scoring the exam, then the years a list sits open before a candidate is reached.</p>
+    <div class="clocks3">
+      <div class="clk">
+        <div class="cn" style="color:var(--orange)">163 days</div>
+        <div class="cl">median time from sitting a DCAS exam to results being posted (early fiscal 2025) — up from 115 a year earlier. The department's own target is 197.<sup> DCAS Preliminary MMR, FY2025</sup></div>
       </div>
-      <div>
-        <div class="bn" style="font-family:var(--serif);font-size:2.6rem;line-height:1;color:var(--green)" id="lag">—</div>
-        <div class="bl" style="font-size:.9rem;margin-top:.4rem">median days from an agency's request to DCAS issuing the certification. Issuing certifications is <b>not</b> the slow step — the friction is over-certification and fall-off, not paperwork turnaround.</div>
+      <div class="clk">
+        <div class="cn" style="color:var(--indigo)" id="window">—</div>
+        <div class="cl">median active life of a list, from established to expiration — the window an eligible candidate has to be reached.</div>
+      </div>
+      <div class="clk">
+        <div class="cn" style="color:var(--green)" id="lag">—</div>
+        <div class="cl">median from an agency's request to DCAS issuing the certification. Issuing certifications is <b>not</b> the slow step.</div>
       </div>
     </div>
+    <div class="note">The system runs slowly at a moment of high demand. As of 2025 more than <b>13,000</b> city positions sat vacant — over twice the pre-pandemic rate — and when the incoming administration opened a hiring portal in late 2025, <b>25,000</b> people applied within a day.<sup style="color:var(--charcoal);font-size:.62rem"> NYC Comptroller; Vital City</sup></div>
   </div>
 </section>
 
@@ -328,7 +339,7 @@ footer a{color:#fff}
         <li><span class="tag out">Outcome</span> <a href="https://data.cityofnewyork.us/dataset/qjzt-ytn9" target="_blank" rel="noopener">Eligible List Utilization (Local Law 50 of 2004)</a> — appointments and every reason candidates left lists.</li>
         <li><span class="tag" style="background:var(--charcoal)">Catalog</span> <a href="https://data.cityofnewyork.us/dataset/nzjr-3966" target="_blank" rel="noopener">NYC Civil Service Titles</a> — the full list of title codes, used for the title-count and investigation figures.</li>
       </ul>
-      <p style="font-size:.8rem;color:#555;margin-top:.6rem">Context figures at the top — the competitive-class share and annual exam volume — are DCAS's own published statements, from the department's <a class="src" href="https://www.nyc.gov/site/dcas/employment/civil-service-system.page" target="_blank" rel="noopener">Civil Service System</a> pages. A single clean "share of all city jobs that are civil service" is not consistently published, so this dashboard does not assert one.</p>
+      <p style="font-size:.8rem;color:#555;margin-top:.6rem">Some figures are external context, not computed from the three datasets above, and are labeled with their source on the page. The competitive-class share is DCAS's own statement from its <a class="src" href="https://www.nyc.gov/site/dcas/employment/more-about-civil-service.page" target="_blank" rel="noopener">Civil Service</a> pages. The <b>~163-day</b> median from exam to results is from the DCAS Preliminary Mayor's Management Report (FY2025); note a widely-cited "290 days" figure measures a broader span and is not used here. The <b>13,000+</b> vacancy count is the NYC Comptroller's vacancy dashboard (2025); the <b>25,000</b> same-day applicants and the framing of this system come from Vital City's <a class="src" href="https://www.vitalcitynyc.org/new-yorks-mamdani-ny-civil-service-system/" target="_blank" rel="noopener">reporting</a>. A single clean "share of all city jobs that are civil service" is not consistently published, so this dashboard does not assert one.</p>
       <h3>Key calculations</h3>
       <ul>
         <li><b>Certified per vacancy.</b> The certification file repeats its header counts (vacancies, requested, certified) on every candidate row. Summing those raw would massively overcount, so each certification is collapsed to one record before any ratio. The citywide figure is total certified ÷ total vacancies; the "typical" figure is the median of the per-certification ratio.</li>
