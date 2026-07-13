@@ -64,6 +64,11 @@ header.hero{background:var(--black);color:var(--white);padding:3.5rem 0 3rem;bor
 .tm-cell .tm-t{font-size:.7rem;font-weight:700;line-height:1.05;letter-spacing:-.01em}
 .tm-cell .tm-n{font-size:.66rem;opacity:.85;font-family:var(--serif)}
 .tm-note{font-size:.8rem;color:var(--charcoal);margin-top:.7rem}
+.tm-cell{cursor:default;transition:outline .05s}
+.tm-cell:hover{outline:2px solid var(--orange);outline-offset:-2px;z-index:2}
+.tm-tip{position:fixed;z-index:60;display:none;pointer-events:none;background:var(--black);color:#fff;padding:.45rem .65rem;font-size:.8rem;max-width:17rem;line-height:1.3;box-shadow:0 4px 18px rgba(0,0,0,.4)}
+.tm-tip b{display:block;font-weight:700}
+.tm-tip span{color:var(--periwinkle);font-family:var(--serif)}
 @media(max-width:600px){#treemap{height:440px}}
 
 /* ---------- section frame ---------- */
@@ -419,12 +424,29 @@ function treemap(el, items){
     if(worst(row,side)>=worst(row.concat(c),side)){row.push(c);idx++;} else {pushRow(row);row=[];}}
   if(row.length)pushRow(row);
   const mn=Math.log(nodes[nodes.length-1].n), mx=Math.log(nodes[0].n);
+  const esc=s=>String(s).replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;");
   el.innerHTML=cells.map(c=>{
     const t=(Math.log(c.n)-mn)/(mx-mn||1), bg=lerpHex("#b9bdd4","#2b3766",t);
     const showT=c.w>52&&c.h>26, showN=c.w>52&&c.h>40;
-    return `<div class="tm-cell" style="left:${c.x}px;top:${c.y}px;width:${c.w}px;height:${c.h}px;background:${bg}" title="${c.t}: ${fmt(c.n)}">`
-      +(showT?`<div class="tm-t">${c.t}</div>`:"")+(showN?`<div class="tm-n">${fmt(c.n)}</div>`:"")+`</div>`;
+    return `<div class="tm-cell" data-t="${esc(c.t)}" data-n="${fmt(c.n)}" style="left:${c.x}px;top:${c.y}px;width:${c.w}px;height:${c.h}px;background:${bg}">`
+      +(showT?`<div class="tm-t">${esc(c.t)}</div>`:"")+(showN?`<div class="tm-n">${fmt(c.n)}</div>`:"")+`</div>`;
   }).join("");
+  // instant, styled tooltip for every cell (including the tiny ones)
+  let tip=document.getElementById("tm-tip");
+  if(!tip){tip=document.createElement("div");tip.id="tm-tip";tip.className="tm-tip";document.body.appendChild(tip);}
+  const show=(e,cell)=>{
+    tip.innerHTML=`<b>${cell.dataset.t}</b><span>${cell.dataset.n} waiting</span>`;
+    tip.style.display="block";
+    const r=tip.getBoundingClientRect(), pad=14;
+    let x=e.clientX+pad, y=e.clientY+pad;
+    if(x+r.width>window.innerWidth-8) x=e.clientX-r.width-pad;
+    if(y+r.height>window.innerHeight-8) y=e.clientY-r.height-pad;
+    tip.style.left=x+"px"; tip.style.top=y+"px";
+  };
+  const hide=()=>{tip.style.display="none";};
+  el.addEventListener("pointermove",e=>{const cell=e.target.closest(".tm-cell"); cell?show(e,cell):hide();});
+  el.addEventListener("pointerdown",e=>{const cell=e.target.closest(".tm-cell"); if(cell)show(e,cell);});
+  el.addEventListener("pointerleave",hide);
 }
 
 let FLOW=null;
