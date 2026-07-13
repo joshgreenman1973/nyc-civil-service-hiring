@@ -17,6 +17,7 @@ from collections import defaultdict
 
 BASE = "https://data.cityofnewyork.us/resource/{}.json"
 ACTIVE, CERT, UTIL = "vx8i-nprf", "a9md-ynri", "qjzt-ytn9"
+CATALOG = "nzjr-3966"   # NYC Civil Service Titles — the full title catalog
 OUT = "data"
 
 def soql(dataset, params):
@@ -63,6 +64,16 @@ title_stock = soql(ACTIVE, {"$select":
 title_stock = [{"title": t["title"], "candidates": inum(t,"candidates"), "lists": inum(t,"lists")}
                for t in title_stock if t.get("title")]
 print(f"     {stock['candidates']:,} candidates on {stock['exams']} lists, {stock['titles']} titles")
+
+# full civil-service title catalog — to show the sheer number/complexity of titles
+cat = soql(CATALOG, {"$select":
+    "count(distinct title) as codes, count(distinct descr) as descriptions, "
+    "count(distinct union_descr) as unions"})[0]
+inv = soql(CATALOG, {"$select": "count(*) as n",
+    "$where": "upper(investigation_before_appointment)='YES'"})[0]
+catalog = {"title_codes": inum(cat,"codes"), "descriptions": inum(cat,"descriptions"),
+           "unions": inum(cat,"unions"), "investigation_titles": inum(inv,"n")}
+print(f"     catalog: {catalog['title_codes']:,} title codes, {catalog['unions']} unions")
 
 # per-exam list windows (established -> anniversary) for the "clock"
 lists = soql(ACTIVE, {"$select":
@@ -192,6 +203,7 @@ stats = {
     "cert_range": [certs and min((c.get("cert_date") or "9999")[:10] for c in certs),
                    certs and max((c.get("cert_date") or "0")[:10] for c in certs)],
     "stock": stock,
+    "catalog": catalog,
     "flow_latest": next(f for f in flow if f["year"] == latest),
     "latest_year": latest,
     # honest ratios (aggregate vs typical)
@@ -212,6 +224,8 @@ stats = {
 
 write("stats.json", stats)
 write("flow.json", flow)
+# every active-list title (title, candidates) for the complexity treemap
+write("titles_all.json", [{"t": t["title"], "n": t["candidates"]} for t in title_stock])
 write("bottleneck.json", bottleneck)
 write("agencies.json", agencies)
 write("ratio_dist.json", hist(cert_ratios, [1,2,3,5,10,25,50,100]))

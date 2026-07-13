@@ -31,6 +31,41 @@ header.hero{background:var(--black);color:var(--white);padding:3.5rem 0 3rem;bor
 .stamp{margin-top:1.6rem;font-size:.75rem;letter-spacing:.04em;color:var(--periwinkle);text-transform:uppercase}
 .stamp b{color:#fff;font-weight:700}
 
+/* ---------- intro paragraph ---------- */
+.intro-para{font-size:1.15rem;line-height:1.6;color:#1c1c20;max-width:60ch}
+.intro-para b{font-weight:700}
+.context-strip{display:flex;flex-wrap:wrap;gap:1.6rem;margin-top:1.6rem;padding-top:1.3rem;border-top:1px solid var(--cloud)}
+.context-strip .ci{max-width:22ch;font-size:.85rem;color:#333}
+.context-strip .ci b{display:block;font-family:var(--serif);font-size:1.7rem;color:var(--indigo);font-weight:300;line-height:1}
+.context-strip .ci sup{font-size:.6rem;color:var(--charcoal)}
+
+/* ---------- hiring flowchart ---------- */
+.flow-steps{display:flex;flex-wrap:wrap;gap:0;margin-top:1.8rem;align-items:stretch}
+.fstep{flex:1 1 0;min-width:150px;border:1px solid var(--black);padding:.9rem .85rem;position:relative;background:#fff;display:flex;flex-direction:column}
+.fstep + .fstep{border-left:0}
+.fstep .fn{font-family:var(--serif);font-size:1.5rem;color:var(--periwinkle);line-height:1}
+.fstep .ft{font-weight:700;font-size:.92rem;margin:.35rem 0 .25rem}
+.fstep .fd{font-size:.78rem;color:#444;line-height:1.4}
+.fstep .fds{margin-top:.55rem}
+.fstep .fds .tag{margin:0}
+.fstep.stage-stock{border-top:4px solid var(--indigo)}
+.fstep.stage-flow{border-top:4px solid var(--cerulean)}
+.fstep.stage-out{border-top:4px solid var(--orange)}
+@media(max-width:880px){
+  .flow-steps{flex-direction:column}
+  .fstep{min-width:0} .fstep + .fstep{border-left:1px solid var(--black);border-top:0}
+  .fstep.stage-stock,.fstep.stage-flow,.fstep.stage-out{border-top:0;border-left-width:4px}
+  .fstep.stage-stock{border-left-color:var(--indigo)} .fstep.stage-flow{border-left-color:var(--cerulean)} .fstep.stage-out{border-left-color:var(--orange)}
+}
+
+/* ---------- titles treemap ---------- */
+#treemap{position:relative;width:100%;height:520px;border:1px solid var(--black);margin-top:1.6rem;background:var(--black)}
+.tm-cell{position:absolute;overflow:hidden;border:1px solid var(--paper);color:#fff;padding:4px 5px}
+.tm-cell .tm-t{font-size:.7rem;font-weight:700;line-height:1.05;letter-spacing:-.01em}
+.tm-cell .tm-n{font-size:.66rem;opacity:.85;font-family:var(--serif)}
+.tm-note{font-size:.8rem;color:var(--charcoal);margin-top:.7rem}
+@media(max-width:600px){#treemap{height:440px}}
+
 /* ---------- section frame ---------- */
 section{padding:3.2rem 0;border-bottom:1px solid var(--cloud)}
 .sec-kicker{font-weight:700;font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;color:var(--charcoal)}
@@ -64,9 +99,10 @@ h2.sec{font-size:clamp(1.5rem,2.6vw,2.1rem);margin:.35rem 0 .5rem;max-width:24ch
 .chart-sub{font-size:.82rem;color:var(--charcoal);margin-bottom:.9rem}
 .bar-row{display:grid;grid-template-columns:minmax(9rem,15rem) 1fr;gap:.6rem;align-items:center;margin:.28rem 0;font-size:.83rem}
 .bar-row .rl{text-align:right;color:#222;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.bar-track{position:relative;background:#e7e5df;height:1.35rem}
-.bar-fill{height:100%;display:flex;align-items:center}
+.bar-track{display:flex;align-items:center;background:#e7e5df;height:1.35rem;min-width:0}
+.bar-fill{height:100%;display:flex;align-items:center;flex:0 0 auto}
 .bar-val{font-size:.75rem;padding:0 .4rem;white-space:nowrap;font-weight:700}
+.bar-out{font-size:.75rem;padding-left:.4rem;white-space:nowrap;font-weight:700;color:#222}
 .toggle{display:inline-flex;gap:.4rem;align-items:center;font-size:.75rem;color:var(--charcoal);cursor:pointer;margin:.2rem 0 1rem;user-select:none}
 .toggle input{accent-color:var(--orange)}
 .svg-wrap{overflow-x:auto}
@@ -118,26 +154,67 @@ footer a{color:#fff}
 <header class="hero">
   <div class="wrap">
     <div class="kicker">New York City · civil-service hiring</div>
-    <h1>Passed the exam. Then the machine.</h1>
-    <p class="dek">New York City fills most of its permanent jobs through a competitive civil-service system: an exam, a ranked list, a certification, an appointment. Three public datasets track the stock, the flow and the outcome — and together they show where the pipeline clogs.</p>
+    <h1>How New York City hires</h1>
+    <p class="dek">Most permanent city jobs are filled through a competitive civil-service system: an exam, a ranked list, a certification, an appointment.</p>
     <div class="stamp">Built <b id="gen">—</b> · sources: NYC DCAS via NYC Open Data</div>
   </div>
 </header>
 
-<!-- 1. THE STOCK -->
+<!-- INTRO -->
+<section id="intro">
+  <div class="wrap narrow">
+    <p class="intro-para">This dashboard follows that system from end to end, using three of the city's own datasets. The <b>active civil-service lists</b> are everyone who has passed an exam and is waiting to be hired — the stock. The <b>certification</b> records show how agencies pull candidates off those lists to fill vacancies — the flow. The <b>Local Law 50 utilization</b> reports show who was actually appointed, and the many reasons candidates leave a list without a job — the outcome. Read together, they show where the distance between passing an exam and starting a job is widest, and how much administrative machinery sits in between.</p>
+    <div class="context-strip">
+      <div class="ci"><b id="cx-comp">80%+</b> of the city's civil-service positions are competitive class — filled through this exam-and-list process<sup> DCAS</sup></div>
+      <div class="ci"><b>180+</b> civil-service exams administered a year, for more than 110,000 candidates<sup> DCAS</sup></div>
+      <div class="ci"><b id="cx-codes">—</b> distinct civil-service title codes exist across city government<sup> DCAS title catalog</sup></div>
+    </div>
+  </div>
+</section>
+
+<!-- FLOWCHART: HOW YOU GET HIRED -->
+<section id="how">
+  <div class="wrap">
+    <div class="sec-kicker"><span class="sec-num">01</span> &nbsp;How you get hired</div>
+    <h2 class="sec">The competitive civil-service path, step by step</h2>
+    <p class="lead">Every competitive-class hire moves through the same sequence. The colored edge on each step marks which of the three datasets records it.</p>
+    <div class="flow-steps">
+      <div class="fstep"><div class="fn">1</div><div class="ft">Exam announced</div><div class="fd">DCAS posts a Notice of Examination for a title and opens an application period.</div></div>
+      <div class="fstep"><div class="fn">2</div><div class="ft">Apply &amp; test</div><div class="fd">Candidates apply and sit the competitive exam. Extra credit can apply (veterans, residency).</div></div>
+      <div class="fstep stage-stock"><div class="fn">3</div><div class="ft">Ranked eligible list</div><div class="fd">Everyone who passes is placed on a list, ordered by score. It stays active one to four years.</div><div class="fds"><span class="tag stock">Stock</span></div></div>
+      <div class="fstep stage-flow"><div class="fn">4</div><div class="ft">Agency requests a certification</div><div class="fd">With a budgeted vacancy, an agency asks DCAS for candidates from the list.</div><div class="fds"><span class="tag flow">Flow</span></div></div>
+      <div class="fstep stage-flow"><div class="fn">5</div><div class="ft">Interview &amp; the rule of three</div><div class="fd">The agency interviews certified candidates and may pick any of the top three willing, reachable people per opening.</div><div class="fds"><span class="tag flow">Flow</span></div></div>
+      <div class="fstep stage-out"><div class="fn">6</div><div class="ft">Appointment &amp; probation</div><div class="fd">The hire starts on probation and becomes permanent. Others stay on the list or fall off.</div><div class="fds"><span class="tag out">Outcome</span></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- 2. THE STOCK -->
 <section id="stock">
   <div class="wrap">
-    <div class="sec-kicker"><span class="sec-num">01</span> &nbsp;The stock</div>
+    <div class="sec-kicker"><span class="sec-num">02</span> &nbsp;The stock</div>
     <h2 class="sec">Right now, hundreds of thousands of people are waiting on a list</h2>
     <p class="lead">A civil-service list is everyone who passed a given exam, ranked by score. A list stays active one to four years. These are the people currently eligible to be hired.</p>
     <div class="cards" id="cards"></div>
   </div>
 </section>
 
+<!-- 3. THE TITLES -->
+<section id="titles">
+  <div class="wrap">
+    <div class="sec-kicker"><span class="sec-num">03</span> &nbsp;The titles</div>
+    <h2 class="sec">The city hires into thousands of separate job titles</h2>
+    <p class="lead">Part of what makes this system complex is its sheer granularity. City government is built from <b id="tx-codes">—</b> distinct civil-service title codes — each with its own exam, list, pay scale and, often, its own union. <b id="tx-inv">—</b> of them require a background investigation before a candidate can even be appointed.</p>
+    <p class="lead" style="margin-top:.6rem">Every rectangle below is one of the <b id="tx-active">—</b> titles with an active list right now, sized by how many people are waiting on it. A handful of big uniformed titles dominate; hundreds of smaller ones form the long tail.</p>
+    <div id="treemap"></div>
+    <div class="tm-note">Sized by active eligibles per title. Labels shown where the box is large enough. Hover for the count.</div>
+  </div>
+</section>
+
 <!-- 2. THE PIPELINE -->
 <section id="pipeline">
   <div class="wrap">
-    <div class="sec-kicker"><span class="sec-num">02</span> &nbsp;The pipeline</div>
+    <div class="sec-kicker"><span class="sec-num">04</span> &nbsp;The pipeline</div>
     <h2 class="sec">Three stages, and a wide gap between passing and hired</h2>
     <p class="lead">An eligible list is the raw material. When an agency has a vacancy it requests a <b>certification</b> — a slice of the ranked list sent over for consideration. Only some of those people are ever appointed. The rest leave the list for reasons the city itself records.</p>
     <div class="pipe" id="pipe"></div>
@@ -148,7 +225,7 @@ footer a{color:#fff}
 <!-- 3. OVER-CERTIFICATION -->
 <section id="overcert">
   <div class="wrap">
-    <div class="sec-kicker"><span class="sec-num">03</span> &nbsp;Over-certification</div>
+    <div class="sec-kicker"><span class="sec-num">05</span> &nbsp;Over-certification</div>
     <h2 class="sec">To fill one opening, agencies are handed a stack of names</h2>
     <p class="lead narrow-lead">For every vacancy, DCAS certifies far more candidates than there are jobs — the pool an agency must screen, interview and clear. Two honest ways to measure it:</p>
     <div class="big2">
@@ -167,7 +244,7 @@ footer a{color:#fff}
 <!-- 4. FLOW OVER TIME -->
 <section id="flow">
   <div class="wrap">
-    <div class="sec-kicker"><span class="sec-num">04</span> &nbsp;The flow</div>
+    <div class="sec-kicker"><span class="sec-num">06</span> &nbsp;The flow</div>
     <h2 class="sec">Certifications issued each year</h2>
     <p class="lead">Each bar counts the certifications agencies requested that year — the number of times a hiring manager went to a list to fill openings. Volume rises and falls with the city's exam and budget cycle.</p>
     <label class="toggle"><input type="checkbox" id="zeroFlow" checked> Start axis at zero</label>
@@ -181,7 +258,7 @@ footer a{color:#fff}
 <!-- 5. BOTTLENECK BOARD -->
 <section id="bottleneck">
   <div class="wrap">
-    <div class="sec-kicker"><span class="sec-num">05</span> &nbsp;The bottleneck board</div>
+    <div class="sec-kicker"><span class="sec-num">07</span> &nbsp;The bottleneck board</div>
     <h2 class="sec">Which titles have the most people waiting</h2>
     <p class="lead">Active eligibles by civil-service title — the deepest benches of people who have passed and are waiting to be reached.</p>
     <div id="bottleneck-list" style="margin-top:1.4rem"></div>
@@ -191,7 +268,7 @@ footer a{color:#fff}
 <!-- 6. PROVISIONAL -->
 <section id="prov">
   <div class="wrap">
-    <div class="sec-kicker"><span class="sec-num">06</span> &nbsp;Provisional pressure</div>
+    <div class="sec-kicker"><span class="sec-num">08</span> &nbsp;Provisional pressure</div>
     <h2 class="sec">Many certifications exist to replace someone already doing the job</h2>
     <p class="lead">A "provisional" employee holds a job without a permanent civil-service line. When a list is established, agencies must certify from it — often to formally replace the provisional worker already in the seat.</p>
     <div class="big2">
@@ -208,7 +285,7 @@ footer a{color:#fff}
 <!-- 7. THE CLOCKS -->
 <section id="clocks">
   <div class="wrap">
-    <div class="sec-kicker"><span class="sec-num">07</span> &nbsp;The clocks</div>
+    <div class="sec-kicker"><span class="sec-num">09</span> &nbsp;The clocks</div>
     <h2 class="sec">Where the time actually goes</h2>
     <div class="split">
       <div>
@@ -226,7 +303,7 @@ footer a{color:#fff}
 <!-- 8. FALL-OFF -->
 <section id="falloff">
   <div class="wrap">
-    <div class="sec-kicker"><span class="sec-num">08</span> &nbsp;Where candidates leave the list</div>
+    <div class="sec-kicker"><span class="sec-num">10</span> &nbsp;Where candidates leave the list</div>
     <h2 class="sec">The reasons people pass an exam but never get hired</h2>
     <p class="lead">From the city's own list-utilization reporting since 2004. Every count is a candidate removed from a list for a reason other than being appointed from it.</p>
     <div id="reasons" style="margin-top:1.4rem"></div>
@@ -236,7 +313,7 @@ footer a{color:#fff}
 <!-- METHOD -->
 <section id="method">
   <div class="wrap narrow">
-    <div class="sec-kicker"><span class="sec-num">09</span> &nbsp;Sources &amp; method</div>
+    <div class="sec-kicker"><span class="sec-num">11</span> &nbsp;Sources &amp; method</div>
     <h2 class="sec">How this was built</h2>
     <div class="method" style="margin-top:1.2rem">
       <h3>The three datasets</h3>
@@ -244,7 +321,9 @@ footer a{color:#fff}
         <li><span class="tag stock">Stock</span> <a href="https://data.cityofnewyork.us/dataset/vx8i-nprf" target="_blank" rel="noopener">Civil Service List (Active)</a> — every candidate on a live eligible list.</li>
         <li><span class="tag flow">Flow</span> <a href="https://data.cityofnewyork.us/dataset/a9md-ynri" target="_blank" rel="noopener">Civil Service List Certification</a> — every certification sent to an agency.</li>
         <li><span class="tag out">Outcome</span> <a href="https://data.cityofnewyork.us/dataset/qjzt-ytn9" target="_blank" rel="noopener">Eligible List Utilization (Local Law 50 of 2004)</a> — appointments and every reason candidates left lists.</li>
+        <li><span class="tag" style="background:var(--charcoal)">Catalog</span> <a href="https://data.cityofnewyork.us/dataset/nzjr-3966" target="_blank" rel="noopener">NYC Civil Service Titles</a> — the full list of title codes, used for the title-count and investigation figures.</li>
       </ul>
+      <p style="font-size:.8rem;color:#555;margin-top:.6rem">Context figures at the top — the competitive-class share and annual exam volume — are DCAS's own published statements, from the department's <a class="src" href="https://www.nyc.gov/site/dcas/employment/civil-service-system.page" target="_blank" rel="noopener">Civil Service System</a> pages. A single clean "share of all city jobs that are civil service" is not consistently published, so this dashboard does not assert one.</p>
       <h3>Key calculations</h3>
       <ul>
         <li><b>Certified per vacancy.</b> The certification file repeats its header counts (vacancies, requested, certified) on every candidate row. Summing those raw would massively overcount, so each certification is collapsed to one record before any ratio. The citywide figure is total certified ÷ total vacancies; the "typical" figure is the median of the per-certification ratio.</li>
@@ -284,12 +363,13 @@ const fmtk = n => n==null? "—" : n>=1e6? (n/1e6).toFixed(n>=1e7?0:1)+"M" : n>=
 async function load(f){ const r = await fetch("data/"+f+".json?_="+Date.now()); return r.json(); }
 
 function barRow(label, val, max, color, valfmt){
-  const pct = max>0? Math.max(1.5, 100*val/max) : 0;
+  const pct = max>0? Math.max(0.8, 100*val/max) : 0;
   const vf = (valfmt||fmt)(val);
+  const inside = pct >= 20;                 // wide enough to hold the label
   return `<div class="bar-row"><div class="rl" title="${label}">${label}</div>
     <div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:${color}">
-    <span class="bar-val" style="color:${pct>28?'#fff':'transparent'}">${vf}</span></div>
-    ${pct<=28?`<span class="bar-val" style="position:absolute;left:${pct}%;color:#222">${vf}</span>`:''}</div></div>`;
+    ${inside?`<span class="bar-val" style="color:#fff">${vf}</span>`:''}</div>
+    ${inside?'':`<span class="bar-out">${vf}</span>`}</div></div>`;
 }
 
 // grouped bar chart (SVG) for flow over time
@@ -320,11 +400,47 @@ function groupedBars(el, rows, seriesKeys, colors, zeroBase){
   el.innerHTML=`<svg viewBox="0 0 ${W} ${H}" width="100%" height="${H}" preserveAspectRatio="xMinYMin meet">${g}</svg>`;
 }
 
+// ---- squarified treemap (Bruls et al.) ----
+function lerpHex(a,b,t){const p=h=>[1,3,5].map(i=>parseInt(h.slice(i,i+2),16));const A=p(a),B=p(b);
+  return "#"+A.map((v,i)=>Math.round(v+(B[i]-v)*t).toString(16).padStart(2,"0")).join("");}
+function treemap(el, items){
+  const W=el.clientWidth, H=el.clientHeight;
+  const data=items.filter(d=>d.n>0).sort((a,b)=>b.n-a.n);
+  const sum=data.reduce((a,d)=>a+d.n,0), scale=W*H/sum;
+  const nodes=data.map(d=>({t:d.t,n:d.n,v:d.n*scale}));
+  const cells=[]; let rect={x:0,y:0,w:W,h:H}, row=[], idx=0;
+  const worst=(r,side)=>{const s=r.reduce((a,c)=>a+c.v,0),mx=Math.max(...r.map(c=>c.v)),mn=Math.min(...r.map(c=>c.v));
+    return Math.max(side*side*mx/(s*s), s*s/(side*side*mn));};
+  const pushRow=r=>{const side=Math.min(rect.w,rect.h),s=r.reduce((a,c)=>a+c.v,0),thick=s/side;
+    if(rect.w>=rect.h){let oy=rect.y;r.forEach(c=>{const ch=c.v/thick;cells.push({...c,x:rect.x,y:oy,w:thick,h:ch});oy+=ch;});rect.x+=thick;rect.w-=thick;}
+    else{let ox=rect.x;r.forEach(c=>{const cw=c.v/thick;cells.push({...c,x:ox,y:rect.y,w:cw,h:thick});ox+=cw;});rect.y+=thick;rect.h-=thick;}};
+  while(idx<nodes.length){const side=Math.min(rect.w,rect.h),c=nodes[idx];
+    if(!row.length){row.push(c);idx++;continue;}
+    if(worst(row,side)>=worst(row.concat(c),side)){row.push(c);idx++;} else {pushRow(row);row=[];}}
+  if(row.length)pushRow(row);
+  const mn=Math.log(nodes[nodes.length-1].n), mx=Math.log(nodes[0].n);
+  el.innerHTML=cells.map(c=>{
+    const t=(Math.log(c.n)-mn)/(mx-mn||1), bg=lerpHex("#b9bdd4","#2b3766",t);
+    const showT=c.w>52&&c.h>26, showN=c.w>52&&c.h>40;
+    return `<div class="tm-cell" style="left:${c.x}px;top:${c.y}px;width:${c.w}px;height:${c.h}px;background:${bg}" title="${c.t}: ${fmt(c.n)}">`
+      +(showT?`<div class="tm-t">${c.t}</div>`:"")+(showN?`<div class="tm-n">${fmt(c.n)}</div>`:"")+`</div>`;
+  }).join("");
+}
+
 let FLOW=null;
 (async function(){
   const s = await load("stats");
   document.getElementById("gen").textContent = s.generated;
   document.getElementById("gen2").textContent = s.generated;
+
+  // context strip + titles section figures
+  const cat=s.catalog;
+  document.getElementById("cx-codes").textContent = fmt(cat.title_codes);
+  document.getElementById("tx-codes").textContent = fmt(cat.title_codes);
+  document.getElementById("tx-inv").textContent = fmt(cat.investigation_titles);
+  document.getElementById("tx-active").textContent = fmt(s.stock.titles);
+  // titles complexity treemap
+  load("titles_all").then(titles=>treemap(document.getElementById("treemap"), titles));
 
   // cards
   const st=s.stock;
