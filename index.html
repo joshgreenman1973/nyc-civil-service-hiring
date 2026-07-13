@@ -166,8 +166,8 @@ footer a{color:#fff}
     <p class="intro-para">This dashboard follows that system from end to end, using three of the city's own datasets. The <b>active civil-service lists</b> are everyone who has passed an exam and is waiting to be hired — the stock. The <b>certification</b> records show how agencies pull candidates off those lists to fill vacancies — the flow. The <b>Local Law 50 utilization</b> reports show who was actually appointed, and the many reasons candidates leave a list without a job — the outcome. Read together, they show where the distance between passing an exam and starting a job is widest, and how much administrative machinery sits in between.</p>
     <div class="context-strip">
       <div class="ci"><b id="cx-comp">80%+</b> of the city's civil-service positions are competitive class — filled through this exam-and-list process<sup> DCAS</sup></div>
-      <div class="ci"><b>180+</b> civil-service exams administered a year, for more than 110,000 candidates<sup> DCAS</sup></div>
       <div class="ci"><b id="cx-codes">—</b> distinct civil-service title codes exist across city government<sup> DCAS title catalog</sup></div>
+      <div class="ci"><b id="cx-unions">—</b> different unions represent those titles, each with its own contract<sup> DCAS title catalog</sup></div>
     </div>
   </div>
 </section>
@@ -436,6 +436,7 @@ let FLOW=null;
   // context strip + titles section figures
   const cat=s.catalog;
   document.getElementById("cx-codes").textContent = fmt(cat.title_codes);
+  document.getElementById("cx-unions").textContent = fmt(cat.unions);
   document.getElementById("tx-codes").textContent = fmt(cat.title_codes);
   document.getElementById("tx-inv").textContent = fmt(cat.investigation_titles);
   document.getElementById("tx-active").textContent = fmt(s.stock.titles);
