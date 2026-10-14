@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How I built this: civil service lists</title>
+<meta name="description" content="Every step and judgment call behind the New York City civil service lists dashboard, who made each call, the checks run and what changed from the earlier version.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=Karla:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="house.css?v=9">
+<style>
+:root{--accent:var(--sun)}
+main{max-width:860px;margin:0 auto;padding:28px clamp(16px,4vw,40px) 80px}
+main h2{margin:38px 0 8px}
+main p,main li{max-width:72ch}
+main li{margin-bottom:6px}
+code{font-size:.9em;background:var(--bg2);padding:1px 5px}
+.call{border-top:1px solid var(--line);padding:14px 0 6px}
+.call h3{margin:0 0 8px;font-size:1.15rem}
+.call dl{display:grid;grid-template-columns:120px 1fr;gap:5px 14px;margin:0 0 6px;font-size:15px}
+.call dt{color:var(--fg2);font-weight:600}
+.call dd{margin:0}
+.who{display:inline-block;padding:0 7px;font-weight:700;color:#111311}
+.who.josh{background:var(--sun)}
+.who.claude{background:var(--cyan)}
+.who.carried{background:var(--lilac)}
+.back{font-size:var(--t-small);color:var(--fg2)}
+@media(max-width:560px){.call dl{grid-template-columns:1fr}.call dt{margin-top:6px}}
+</style>
+</head>
+<body>
+<main>
+<p class="back"><a href="./">Back to the dashboard</a> · <a href="methodology.html">Methodology</a></p>
+<h1>How I built this</h1>
+<p class="lede">The steps that turn the city's data into the dashboard, every judgment call along the way, who made it, how the numbers were checked and what changed from the earlier version.</p>
+<p class="caution">Who did what. Josh Greenman asked for an analysis of the active civil service list, then a dashboard that describes it carefully, then a search by title or agency, and chose to replace his July 2026 dashboard at the same address. Claude (Anthropic's model, working in Claude Code) did the analysis, wrote the build script and the page, and made the calls marked <span class="who claude">Claude</span> below; those are open to review. Calls marked <span class="who carried">Carried over</span> come from the July version.</p>
+
+<h2 id="build">The build, step by step</h2>
+<ol>
+<li>Download the full active and terminated list exports (about 50 MB and 100 MB) and check that their columns match what the script expects.</li>
+<li>Group active rows into lists by exam number, agency code and group number. For each list: size, highest list number, people added later, dates, status, score summary and histogram, largest tie and credit counts. Count distinct names and record, for each name key, which exams and titles it appears on. Names never leave this step.</li>
+<li>Ask the certification dataset, with grouped queries, for the deepest list number sent, rows and distinct list numbers per exam and title, and per exam, title and agency, since 2018. Match them to lists and re-query any list whose matches start before it took effect.</li>
+<li>Ask the certification dataset for one record per certification, then total by year, agency and title.</li>
+<li>Pull the provisional report: totals for every quarter, totals by agency for every quarter, and the latest quarter in full.</li>
+<li>Pull counts from the Civil List for its latest year, the title catalog and the latest exam schedule.</li>
+<li>Group terminated rows into ended lists and compute how long each lasted.</li>
+<li>Compute the residency comparison, ties, credits by title and cross-list matches.</li>
+<li>Write ten JSON files, append the day's headline counts to <code>daily.json</code>, and stop with an error, writing nothing, if any source comes back empty or malformed.</li>
+</ol>
+
+<h2 id="calls">Judgment calls</h2>
+
+<div class="call"><h3>Replace the July dashboard at the same address</h3><dl>
+<dt>Decision</dt><dd>Build the new dashboard in the existing repository so links to joshgreenman1973.github.io/nyc-civil-service-hiring/ keep working; the July version stays in git history.</dd>
+<dt>Why</dt><dd>The July page had two errors (see the change log) and covered the same ground.</dd>
+<dt>Alternative</dt><dd>A new page with the old one redirecting, or left up unchanged.</dd>
+<dt>Who</dt><dd><span class="who josh">Josh</span></dd></dl></div>
+
+<div class="call"><h3>Treat the active list as everyone who passed, not everyone waiting</h3><dl>
+<dt>Decision</dt><dd>Say on the page that the totals include people already hired, declined or removed.</dd>
+<dt>Why</dt><dd>Only 0.5% of list positions are empty. The 2018 conductor list has been sent to New York City Transit down to its last name, about eight times per name, and is missing 27 of 31,852 positions.</dd>
+<dt>Alternative</dt><dd>Describe the totals as a waiting pool, as the July page did.</dd>
+<dt>Effect</dt><dd>Changes what "406,681 entries" means; no number changes.</dd>
+<dt>Who</dt><dd><span class="who claude">Claude</span></dd></dl></div>
+
+<div class="call"><h3>Leave out the list-utilization report</h3><dl>
+<dt>Decision</dt><dd>Don't use <code>qjzt-ytn9</code> (Local Law 50 of 2004) for appointment or removal counts.</dd>
+<dt>Why</dt><dd>No reporting-year field; 6,892 of 22,737 rows are exact copies of other rows; 16,000 rows are for lists established in 2023, a structure the dataset doesn't explain.</dd>
+<dt>Alternative</dt><dd>Sum it (the July page: 452,206 appointments) or deduplicate it (335,937). Neither can be checked.</dd>
+<dt>Effect</dt><dd>The page has no hiring counts. It says so.</dd>
+<dt>Who</dt><dd><span class="who claude">Claude</span></dd></dl></div>
+
+<div class="call"><h3>Measure depth by the deepest list number sent</h3><dl>
+<dt>Decision</dt><dd>Depth = deepest certified list number ÷ highest list number, grouped at 25%, 50% and 90%.</dd>
+<dt>Why</dt><dd>Certifications go out in rank order, so the deepest number marks how far down the list agencies have reached.</dd>
+<dt>Alternative</dt><dd>The share of a list's names ever certified. On the first build the two measures put 1,048 of 1,165 certified lists in the same group. Where they differ, depth is higher, because some certifications skip ahead (selective certifications send only people with particular qualifications).</dd>
+<dt>Effect</dt><dd>The page uses both. The opening sentence uses the stricter one: 361 open lists have had at least 90% of their names sent, against 403 reached at least 90% of the way down.</dd>
+<dt>Who</dt><dd><span class="who claude">Claude</span></dd></dl></div>
+
+<div class="call"><h3>Match certifications on exam number and title, and guard against reused exam numbers</h3><dl>
+<dt>Decision</dt><dd>Match on exam number plus title code (plus agency for promotional lists), certifications since 2018 only; re-query a list with only certifications after it took effect if its matches start more than 30 days before that.</dd>
+<dt>Why</dt><dd>DCAS reuses exam numbers each decade: exam 6054 was a different list in 2016 and in 2026. Matching on exam number alone wrongly credited 194 lists with older certifications in an early draft.</dd>
+<dt>Effect</dt><dd>Eight lists re-queried on the first build.</dd>
+<dt>Who</dt><dd><span class="who claude">Claude</span></dd></dl></div>
+
+<div class="call"><h3>Show police officer lists as no data</h3><dl>
+<dt>Decision</dt><dd>Plot the 30 police officer lists as hollow circles below the chart and label them, instead of at 0%.</dd>
+<dt>Why</dt><dd>The certification records for that title end on Jan. 3, 2019. Zero would read as "no one sent."</dd>
+<dt>Who</dt><dd><span class="who claude">Claude</span></dd></dl></div>
+
+<div class="call"><h3>Use 10 points for the residency credit</h3><dl>
+<dt>Decision</dt><dd>Treat the residency credit as 10 points everywhere it appears.</dd>
+<dt>Why</dt><dd>The current notices of examination for sanitation worker (2060), firefighter (4044) and police officer (7311–7322) all say 10. In the data, residents with no other credit top out at 110 on every such list, and at 10 points the count of scores still above 100 after removing named credits falls from 4,129 (at 5 points) to 26.</dd>
+<dt>Alternative</dt><dd>5 points, the value in the 1990s court cases. Claude assumed 5 in the first analysis given to Josh in chat; that analysis understated the credit's effect on the firefighter list (it gave 130 nonresidents in the top 1,000 without the credit; the correct figure is 410).</dd>
+<dt>Who</dt><dd><span class="who claude">Claude</span>, after a separate check of the notices and statutes</dd></dl></div>
+
+<div class="call"><h3>The residency comparison holds everything else fixed</h3><dl>
+<dt>Decision</dt><dd>Remove 10 points from each resident and re-rank, keeping original order within ties.</dd>
+<dt>Why</dt><dd>It isolates the credit's mechanical effect on order.</dd>
+<dt>Alternative</dt><dd>Model who would have applied without the credit. The data can't support that, and the page says the comparison ignores it.</dd>
+<dt>Who</dt><dd><span class="who claude">Claude</span></dd></dl></div>
+
+<div class="call"><h3>Match people across lists by name, with a middle initial</h3><dl>
+<dt>Decision</dt><dd>Use first name, middle initial and last name; drop names without a middle initial (about half) from cross-list matching.</dd>
+<dt>Why</dt><dd>There is no person ID. Requiring a middle initial cuts false matches between common names; shares between unrelated titles stay mostly under 1%, which bounds the error.</dd>
+<dt>Effect</dt><dd>Cross-list shares rest on 131,352 of about 254,000 distinct names.</dd>
+<dt>Who</dt><dd><span class="who claude">Claude</span></dd></dl></div>
+
+<div class="call"><h3>Smaller calls</h3><dl>
+<dt>Provisionals</dt><dd>Two rows with no report date (10,499 provisionals between them) are left out. "More than two years" adds the pure and step 25-months-plus columns. <span class="who claude">Claude</span></dd>
+<dt>Ended lists</dt><dd>"More than four years" means over 4.02 years in use, to absorb leap days and date offsets. <span class="who claude">Claude</span></dd>
+<dt>Certification years</dt><dd>Charts start in 2016, the first year with 100 or more certifications; one record is dated 2007. <span class="who claude">Claude</span></dd>
+<dt>Names per vacancy</dt><dd>Each certification collapsed to one record before taking the median of names certified ÷ vacancies. <span class="who carried">Carried over</span></dd>
+<dt>Agency names</dt><dd>The longest spelling across sources, since sources cut names at different lengths. <span class="who claude">Claude</span></dd>
+<dt>Tracked titles</dt><dd>The 12 entry-level titles followed across years are fixed in the script so the charts don't reshuffle. <span class="who claude">Claude</span></dd>
+<dt>Exam-to-results time</dt><dd>The July page cited 163 days from a preliminary report. The page now uses the fiscal 2026 Mayor's Management Report: 101 business days, 158 in fiscal 2025. <span class="who claude">Claude</span></dd>
+<dt>External figures dropped</dt><dd>The July page's 13,000 vacancies and 25,000 same-day applicants weren't re-verified for this version and are gone. <span class="who claude">Claude</span></dd>
+</dl></div>
+
+<h2 id="checks">How the numbers were checked</h2>
+<ul>
+<li>The headline counts were computed twice: first in a separate exploratory analysis of the downloaded data, then by <code>build.py</code>. They agree (406,681 rows, 1,581 lists, 873 exams, 441 titles, 89 lists not yet in use, 229 extended). The count of open lists sent at least 90% of the way down differs by one (404 against 403) because the build re-queries reused exam numbers.</li>
+<li>Spot checks against the certification dataset by hand: the 2018 conductor list certified to No. 31,852 of 31,852; sanitation worker to No. 6,636; the firefighter list's first batch on Aug. 28, 2026, down to No. 924.</li>
+<li>Every statute, notice and report figure on the page was checked against the source text by a separate research pass: Civil Service Law §§56, 61, 65, 85 and 85-a to 85-c (NY Senate and FindLaw copies agree), City Charter §814, notices of examination 2060, 4044 and 7311–7322, and the fiscal 2025 and 2026 Mayor's Management Reports.</li>
+<li>The page script passes <code>node --check</code> and was loaded in a browser at desktop and phone widths with no console errors and no sideways scrolling.</li>
+</ul>
+
+<h2 id="changes">Change log</h2>
+<ul>
+<li><b>Oct. 14, 2026.</b> Replaced the July 13 dashboard ("How New York City hires") at the same address. Corrected: the old page called the names on active lists "waiting to be hired"; the list keeps people already hired. Removed: the old page's outcome totals, which summed the list-utilization report including 6,892 duplicated rows. Updated the exam-to-results figure to the fiscal 2026 report. Added: depth on every list, list ages and extensions, ended lists since 2016, names on each new list for 12 entry titles, scores and credits with the residency comparison, provisional employees since 2008, cross-list matches, search by title or agency with full profiles, a record for every list, a daily rebuild and a daily log of headline counts.</li>
+</ul>
+
+<h2 id="not">What the dashboard does not do</h2>
+<ul>
+<li>Count hires, or say whether a particular person was hired.</li>
+<li>Show or search names.</li>
+<li>Say anything about race, gender, age or where people live.</li>
+<li>Predict when a list number will be reached.</li>
+<li>Explain why a list was extended or why a provisional appointment continues; the data doesn't say.</li>
+</ul>
+</main>
+</body>
+</html>

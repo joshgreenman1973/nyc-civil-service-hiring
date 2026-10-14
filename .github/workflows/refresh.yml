@@ -1,0 +1,46 @@
+name: Refresh civil service data
+
+# DCAS replaces the active-list dataset every morning (about 9 a.m. Eastern).
+# Rebuild after that, commit the data only if it changed, and let Pages redeploy.
+on:
+  schedule:
+    - cron: '25 15 * * *'   # 11:25 a.m. Eastern in daylight time, 10:25 in standard
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: refresh
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Build data (fails, and commits nothing, if a source looks empty or changed shape)
+        run: python3 build.py
+
+      - name: Commit and push if the data changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/
+          if git diff --staged --quiet; then
+            echo "No change in the data."
+            exit 0
+          fi
+          git commit -m "Data refresh $(date -u +%Y-%m-%d)"
+          for attempt in 1 2 3 4 5; do
+            if git push origin HEAD:main; then exit 0; fi
+            echo "Push rejected (attempt $attempt); rebasing on main"
+            git pull --rebase origin main
+          done
+          echo "Push failed after retries"; exit 1

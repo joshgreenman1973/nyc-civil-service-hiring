@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Methodology: civil service lists</title>
+<meta name="description" content="Sources, definitions, formulas and limits behind the New York City civil service lists dashboard.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=Karla:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="house.css?v=9">
+<style>
+:root{--accent:var(--sun)}
+main{max-width:860px;margin:0 auto;padding:28px clamp(16px,4vw,40px) 80px}
+main h2{margin:38px 0 8px}
+main h3{margin:24px 0 6px}
+main p,main li{max-width:72ch}
+main li{margin-bottom:6px}
+code{font-size:.9em;background:var(--bg2);padding:1px 5px}
+.f{font-family:var(--display);font-variation-settings:'wdth' 88;background:var(--bg2);padding:10px 14px;margin:8px 0 14px;max-width:72ch}
+table.h{margin:10px 0 18px}
+table.h td{vertical-align:top}
+.back{font-size:var(--t-small);color:var(--fg2)}
+</style>
+</head>
+<body>
+<main>
+<p class="back"><a href="./">Back to the dashboard</a> · <a href="how-i-built-this.html">How I built this</a></p>
+<h1>Methodology</h1>
+<p class="lede">Where every number on the dashboard comes from, how it is calculated and what it leaves out. The build script, <code>build.py</code>, runs every day and is in the <a href="https://github.com/joshgreenman1973/nyc-civil-service-hiring">repository</a>; it uses the Python standard library and no API key.</p>
+
+<h2>Sources</h2>
+<p>All from NYC Open Data, published by the Department of Citywide Administrative Services (DCAS).</p>
+<table class="h">
+<thead><tr><th>Dataset</th><th>ID</th><th>How it is read</th><th>Used for</th></tr></thead>
+<tbody>
+<tr><td><a href="https://data.cityofnewyork.us/d/vx8i-nprf">Civil Service List (Active)</a></td><td><code>vx8i-nprf</code></td><td>Full CSV export, one row per person per list</td><td>Lists, sizes, dates, scores, credits, distinct names, cross-list matches</td></tr>
+<tr><td><a href="https://data.cityofnewyork.us/d/qu8g-sxqf">Civil Service List (Terminated)</a></td><td><code>qu8g-sxqf</code></td><td>Full CSV export</td><td>How long ended lists lasted; names on past lists</td></tr>
+<tr><td><a href="https://data.cityofnewyork.us/d/a9md-ynri">Civil Service List Certification</a></td><td><code>a9md-ynri</code></td><td>Grouped SoQL queries (6.7 million rows are never downloaded)</td><td>How far down each list agencies have been sent names; which agencies; certifications by year</td></tr>
+<tr><td><a href="https://data.cityofnewyork.us/d/uxsm-hzx3">Charter Mandated Quarterly Report on Provisionals</a></td><td><code>uxsm-hzx3</code></td><td>Grouped SoQL queries plus the latest quarter in full</td><td>Provisional employees by title and agency, and over time</td></tr>
+<tr><td><a href="https://data.cityofnewyork.us/d/ye3c-m4ga">Civil List</a></td><td><code>ye3c-m4ga</code></td><td>Counts by title and agency for the latest calendar year</td><td>How many people held a title or worked at an agency</td></tr>
+<tr><td><a href="https://data.cityofnewyork.us/d/nzjr-3966">NYC Civil Service Titles</a></td><td><code>nzjr-3966</code></td><td>Full table</td><td>Salary range, union, investigation flag</td></tr>
+<tr><td><a href="https://data.cityofnewyork.us/d/4ptz-hmtc">Annual Examination Schedule</a></td><td><code>4ptz-hmtc</code></td><td>Rows from the latest posting</td><td>Upcoming exams for a title</td></tr>
+</tbody></table>
+<p>Context figures not computed from these datasets, each cited where it appears: the <a href="https://www.nyc.gov/assets/operations/downloads/pdf/mmr2026/dcas.pdf">fiscal 2026 Mayor's Management Report, DCAS chapter</a> (median time from exam to results; applications received); New York State Civil Service Law §§56, 61, 65, 85 and 85-a to 85-c; City Charter §814; and DCAS notices of examination for exams <a href="https://www.nyc.gov/assets/dcas/downloads/pdf/noes/20244044000.pdf">4044</a>, <a href="https://www.nyc.gov/assets/dcas/downloads/pdf/noes/20222060000.pdf">2060</a> and <a href="https://www.nyc.gov/assets/dcas/downloads/pdf/noes/20277311000.pdf">7311–7322</a> (the residency credit).</p>
+
+<h2>What a row in the active list is</h2>
+<p>One person on one list. A list is identified by exam number, agency code and group number. Open-competitive lists carry agency code 000; promotional lists carry the agency's code; lists whose agency reads "Qualified incumbent" are qualifying exams for provisional employees and are treated as a third type.</p>
+<p>The list keeps people after they are hired or removed. Evidence: across all 1,581 lists, only 2,210 of 402,988 whole-number list positions (0.5%) are empty, and on the lists checked they roughly match the people moved to fractional positions. The 2018 conductor list, whose every list number has been sent to New York City Transit an average of eight times, is missing 27 of 31,852 positions and has 31 people in fractional ones. DCAS's own utilization reporting says people are removed from lists when appointed or for other reasons; those removals don't appear in this dataset.</p>
+
+<h2>Definitions and formulas</h2>
+<h3>Status</h3>
+<ul>
+<li><b>Published, not in use</b>: no established date.</li>
+<li><b>Within four years</b>: anniversary date on or after the build date.</li>
+<li><b>Extended</b>: anniversary date past, extension date on or after the build date.</li>
+</ul>
+<h3>Depth reached</h3>
+<div class="f">depth = min(1, deepest list number on any certification from the list ÷ highest list number on the list)</div>
+<p>Certifications are matched to a list by exam number and title code for open-competitive and qualified-incumbent lists, and by exam number, title code and agency code for promotional lists, counting only certifications dated Jan. 1, 2018 or later (the oldest list in use took effect Feb. 14, 2018). Exam numbers are reused every decade, so when the first matching certification predates the list's established date by more than 30 days, the build re-queries that list with only certifications on or after its established date. Depth is grouped as none sent, under 25%, 25% to 49%, 50% to 89% and 90% or more; "to the very last name" means 99.9% or more.</p>
+<p>For police officer lists the certification records end on Jan. 3, 2019, so their depth is shown as no data, never as zero.</p>
+<h3>Times each name was sent</h3>
+<div class="f">entries per name = rows on certifications from the list ÷ names on the list</div>
+<p>A row on a certification is one person sent once. The dashboard reports the median across open-competitive lists of 100 or more names.</p>
+<h3>Agencies sent names from a list</h3>
+<p>For open-competitive lists, certification rows grouped by the receiving agency's code: total rows, distinct list numbers and the latest certification date.</p>
+<h3>Distinct names and cross-list matches</h3>
+<p>A name key is first name, middle initial and last name, uppercased. "Distinct names" counts keys across the whole active list. Cross-list matching uses only keys with a middle initial, and only open-competitive lists:</p>
+<div class="f">share of title A also on title B = keys on A's lists that are also on B's lists ÷ keys on A's lists</div>
+<h3>Credits</h3>
+<p>Points used when checking scores: residency 10; veterans 5 on open-competitive lists and 2.5 on promotional lists; disabled veterans 10 and 5; legacy 10 for a parent and 10 for a sibling. The check counts rows where</p>
+<div class="f">adjusted final average − named credits &gt; 100</div>
+<p>which can only happen if a row carries a credit the data doesn't name. The residency value is 10 points in the current notices of examination for exams 2060, 4044 and 7311–7322, and the data agrees: on every list with residency credits, residents with no other credit top out at 110 (one police list has a resident at 111).</p>
+<h3>Residency comparison</h3>
+<p>For each open-competitive list of 1,000 or more names where at least 20% hold the residency credit: rank as listed; then subtract 10 points from every resident and re-rank, breaking ties by original list number. For each top-N cutoff, the chart shows the share of nonresidents under each ranking. "Reached so far" converts the deepest certified list number to a count of rows at or above it.</p>
+<h3>Ended lists</h3>
+<div class="f">years in use = (termination date − established date) ÷ 365.25; "more than four years" means over 4.02</div>
+<p>"Ended early" means terminated more than five days before the anniversary date. Ended lists are keyed by exam number, agency, group, title code and established date, so a reused exam number doesn't merge two lists.</p>
+<h3>Names on each new list</h3>
+<p>For 12 fixed entry-level titles, the names on every open-competitive list, active or ended, grouped by the year the list took effect.</p>
+<h3>Provisional employees</h3>
+<div class="f">more than two years = pure_prov_25_mos + step_prov_25_mos</div>
+<p>Rows without a report date are excluded (two rows, together 10,499, in the October 2026 build). A title "has an open list in use" if an open-competitive list with the same title code has an established date.</p>
+<h3>Certifications by year</h3>
+<p>The certification dataset repeats each certification's header fields on every name row, so each certification (<code>cert_issue_no</code>) is collapsed to one record first, taking the maximum of each header field. Then, per calendar year of the certification date: count of certifications; rows (names sent); share whose <code>provisional_replacement</code> is "Y"; median of <code>no_certified ÷ no_vacancies</code>; median days from request date to certification date. Charts start in the first year with at least 100 certifications (2016); one certification is dated 2007.</p>
+<h3>People in a title or agency</h3>
+<p>Rows in the Civil List for its latest calendar year, grouped by title code or by agency code. The Civil List covers anyone employed at any time during that year, so it counts people who left.</p>
+<h3>Salary range and union</h3>
+<p>The minimum and maximum incumbent rates across a title's assignment levels in the title catalog, ignoring rates under $1,000 (hourly and per-diem rates). The catalog cuts union names at 30 characters; the dashboard marks those with an ellipsis.</p>
+<h3>Agency names</h3>
+<p>Each source spells and cuts agency names differently. The dashboard uses the longest spelling seen for an agency code, then title-cases it and spells out "N.Y.C." and "HRA".</p>
+
+<h2>Not used</h2>
+<ul>
+<li><b>Annual City Council Report on Eligible List Utilization</b> (<code>qjzt-ytn9</code>, Local Law 50 of 2004). It counts appointments and removals, which the active list lacks, but the open-data version has no reporting-year field, its row structure is unexplained (16,000 of its 22,737 rows are for lists established in 2023) and 6,892 rows are exact duplicates of other rows. Summing it overstates appointments by about a third; deduplicating may understate them. The earlier version of this dashboard summed it.</li>
+<li><b>Vacancy totals.</b> The same opening can appear on several certifications, so vacancy counts are used only as a ratio within each certification.</li>
+</ul>
+
+<h2>Limits</h2>
+<ul>
+<li>No record of who was hired, declined or removed.</li>
+<li>No police officer certification records after Jan. 3, 2019.</li>
+<li>No open-competitive police officer lists established in 2013 or 2018 through 2021 appear in either list dataset.</li>
+<li>Name keys merge different people with the same name and split one person who spelled a name two ways.</li>
+<li>The terminated dataset covers lists that ended from June 2016 on.</li>
+<li>The active dataset is replaced every day. From Oct. 14, 2026, the build appends its headline counts to <code>data/daily.json</code> so changes can be tracked.</li>
+<li>Twenty police officer residents score below 80, which a 10-point credit added to a passing score can't produce. The data doesn't show why.</li>
+</ul>
+
+<h2>Files</h2>
+<ul>
+<li><code>build.py</code> writes <code>data/summary.json</code>, <code>lists.json</code>, <code>titles.json</code>, <code>agencies.json</code>, <code>history.json</code>, <code>scores.json</code>, <code>overlap.json</code>, <code>provisionals.json</code>, <code>certs.json</code> and <code>daily.json</code>. No file contains a name.</li>
+<li><code>app.js</code> draws the page from those files.</li>
+<li><code>.github/workflows/refresh.yml</code> runs the build daily and commits the data if it changed. If any source looks empty or its columns change, the build stops with an error and nothing is committed.</li>
+</ul>
+</main>
+</body>
+</html>
