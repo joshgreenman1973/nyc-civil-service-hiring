@@ -40,7 +40,8 @@ const ACR = new Set(['EMT', 'EMS', 'IT', 'LAN', 'WAN', 'DC', 'DOT', 'CUNY', 'HVA
   'DSNY', 'ACS', 'DOC', 'DCAS', 'DOB', 'HPD', 'DHS', 'DSS', 'OATH', 'TLC', 'EEO', 'GIS', 'HR', 'MIS', 'II', 'III', 'IV', 'VI',
   'VII', 'VIII', 'CCRB', 'DOHMH', 'DOI', 'DYCD', 'SBS', 'DCP', 'DORIS', 'MTA', 'TBTA', 'LPN', 'RN', 'EKG', 'MRI', 'HAZMAT', 'WTC',
   'DA', 'DMV', 'CPA', 'PC', 'MA', 'NYC', 'ADA', 'CDL', 'OTI', 'DOITT', 'DFTA', 'CFB', 'BIC', 'ECTP', 'DOF', 'DDC', 'OMB', 'OEM',
-  'DCWP', 'DCLA', 'CSC', 'EEPC', 'FISA', 'IBO', 'DVS', 'NYCERS', 'TRS', 'OCME', 'HHC', 'H+H', 'SCA', 'LAN/WAN']);
+  'DCWP', 'DCLA', 'CSC', 'EEPC', 'FISA', 'IBO', 'DVS', 'NYCERS', 'TRS', 'OCME', 'HHC', 'H+H', 'SCA', 'LAN/WAN',
+  'IBT', 'SEIU', 'CWA', 'UFA', 'PBA', 'DC37', 'AFSCME', 'TWU', 'OSA', 'CSA', 'UFT', 'COBA', 'LBA', 'SBA', 'CEA', 'USA', 'NYSNA', 'PEF', 'ATU', 'IUOE', 'IBEW', 'UFOA', 'DEA', 'CIR']);
 const SMALLW = new Set(['of', 'and', 'for', 'the', 'on', 'to', 'in', 'at', 'a', 'an', 'or', 'by', 'with']);
 
 /* Job titles in sentence case, keeping acronyms and Roman numerals. */
