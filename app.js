@@ -41,7 +41,7 @@ const ACR = new Set(['EMT', 'EMS', 'IT', 'LAN', 'WAN', 'DC', 'DOT', 'CUNY', 'HVA
   'VII', 'VIII', 'CCRB', 'DOHMH', 'DOI', 'DYCD', 'SBS', 'DCP', 'DORIS', 'MTA', 'TBTA', 'LPN', 'RN', 'EKG', 'MRI', 'HAZMAT', 'WTC',
   'DA', 'DMV', 'CPA', 'PC', 'MA', 'NYC', 'ADA', 'CDL', 'OTI', 'DOITT', 'DFTA', 'CFB', 'BIC', 'ECTP', 'DOF', 'DDC', 'OMB', 'OEM',
   'DCWP', 'DCLA', 'CSC', 'EEPC', 'FISA', 'IBO', 'DVS', 'NYCERS', 'TRS', 'OCME', 'HHC', 'H+H', 'SCA', 'LAN/WAN',
-  'IBT', 'SEIU', 'CWA', 'UFA', 'PBA', 'DC37', 'AFSCME', 'TWU', 'OSA', 'CSA', 'UFT', 'COBA', 'LBA', 'SBA', 'CEA', 'USA', 'NYSNA', 'PEF', 'ATU', 'IUOE', 'IBEW', 'UFOA', 'DEA', 'CIR']);
+  'PSE', 'SSA', 'TEA', 'IBT', 'SEIU', 'CWA', 'UFA', 'PBA', 'DC37', 'AFSCME', 'TWU', 'OSA', 'CSA', 'UFT', 'COBA', 'LBA', 'SBA', 'CEA', 'USA', 'NYSNA', 'PEF', 'ATU', 'IUOE', 'IBEW', 'UFOA', 'DEA', 'CIR']);
 const SMALLW = new Set(['of', 'and', 'for', 'the', 'on', 'to', 'in', 'at', 'a', 'an', 'or', 'by', 'with']);
 
 /* Job titles in sentence case, keeping acronyms and Roman numerals. */
@@ -145,7 +145,6 @@ function init() {
 }
 
 function drawAll() {
-  drawScatter();
   drawDepthBars();
   drawGantt();
   drawPastFour();
@@ -159,124 +158,60 @@ function drawAll() {
 }
 
 /* ------------------------------------------------------------ opening */
+/* Each name on a list counts as "sent" if its list number appears on at least one certification
+   (a batch of names the city sent an agency with openings). Capped at the list's size. */
+const sentCount = L => L.c ? Math.min(L.c[0], L.n) : 0;
+function standing() {
+  const t = {sent: 0, not: 0, pol: 0, pend: 0, polLists: 0, pendLists: 0};
+  D.L.forEach(L => {
+    if (L.st === 'pending') { t.pend += L.n; t.pendLists++; }
+    else if (L.cn === 'police') { t.pol += L.n; t.polLists++; }
+    else { const x = sentCount(L); t.sent += x; t.not += L.n - x; }
+  });
+  t.total = t.sent + t.not + t.pol + t.pend;
+  return t;
+}
 function writeOpening() {
-  const S = D.S;
-  const san = D.L.find(L => L.tc === '70112' && L.k === 'oc' && L.est);
-  const om = S.ocMeasured;
-  const most = D.L.filter(L => L.k === 'oc' && L.est && L.dp != null && coverage(L) >= 0.9).length;
-  let f = `On ${fmt(most)} of the ${fmt(om.lists)} open-competitive lists with certification records, agencies have been sent at least 90% of the names`;
-  if (san && san.c) f += `; on the ${fmt(san.n)}-name sanitation worker list they have reached No. ${fmt(san.c[1])}.`;
-  else f += '.';
-  $('#finding').textContent = f;
+  const S = D.S, t = standing();
+  $('#finding').textContent = `The city has sent ${fmt(t.sent)} of the ${fmt(t.total)} names on its civil service lists to an agency with job openings at least once.`;
   const k = S.kinds;
   $('#lede').innerHTML =
     `The Department of Citywide Administrative Services publishes every list of people who passed a city civil service exam: ` +
-    `<b>${fmt(S.rows)}</b> entries on <b>${fmt(S.lists)}</b> lists, from ${fmt(S.exams)} exams for ${fmt(S.titles)} job titles. ` +
-    `They hold about ${fmt(Math.round(S.names / 1000) * 1000)} distinct names, because many people are on more than one list. ` +
-    `${fmt(k.oc.lists)} lists are open competitive, open to the public; ${fmt(k.promo.lists)} are promotional, for one agency's employees; ` +
-    `${spell(k.qie.lists)} are qualifying lists for provisional employees. The lists still carry people who were hired, declined or dropped, ` +
-    `and nothing in the data says which, so the totals count everyone who passed, not everyone still waiting.`;
-  const p = S.police;
-  $('#policeNote').innerHTML = `Hollow circles below the chart are the ${spell(p.lists)} police officer lists (${fmt(p.rows)} names). ` +
-    `The city's certification records for that title stop on ${apDate(p.lastCert)}, so how far the Police Department has gone on them can't be measured.`;
-}
-
-const scatterState = {kinds: {oc: true, promo: true, qie: true}};
-function drawScatter() {
-  const box = $('#scatter');
-  const W = box.clientWidth || 800;
-  const H = Math.max(330, Math.min(540, W * 0.52));
-  const policeBand = 54;
-  const m = {l: 46, r: 14, t: 26, b: 34 + policeBand};
-  const s = svg(W, H);
-  const x0 = new Date('2018-01-01'), x1 = new Date(TODAY.getTime() + 75 * 864e5);
-  const X = lin(x0, x1, m.l, W - m.r), Y = lin(0, 1, H - m.b, m.t);
-  const maxN = Math.max(...D.L.map(L => L.n));
-  const R = n => 1.6 + Math.sqrt(n / maxN) * Math.min(28, W / 34);
-  const g = sv(s, 'g', {class: 'grid'});
-  [0, .25, .5, .75, 1].forEach(v => {
-    sv(g, 'line', {x1: m.l, x2: W - m.r, y1: Y(v), y2: Y(v)});
-    sv(s, 'text', {x: m.l - 8, y: Y(v) + 4, 'text-anchor': 'end'}, pct(v));
+    `<b>${fmt(S.rows)}</b> names on <b>${fmt(S.lists)}</b> lists, from ${fmt(S.exams)} exams for ${fmt(S.titles)} job titles. ` +
+    `A person on two lists is counted twice; there are about ${fmt(Math.round(S.names / 1000) * 1000)} different names in all. ` +
+    `${fmt(k.oc.lists)} lists are open to the public; ${fmt(k.promo.lists)} are promotional lists, open only to one agency's employees; ` +
+    `${spell(k.qie.lists)} are qualifying lists for people already doing the job temporarily. People stay on a list after they are hired, ` +
+    `turn down a job or are dropped, and the data doesn't say which happened to whom.`;
+  $('#openAside').innerHTML = `<p class="aside"><b>How the city hires from a list.</b> When an agency has openings in a job title, the city sends it a batch of names from the list for that title, starting at the top and going down in rank order. The agency must hire from the people in that batch: for each opening, it picks one of the three highest-ranked people who want the job. The city publishes a record of every batch and every name on it.</p>
+    <p class="aside"><b>What this bar shows.</b> All ${fmt(t.total)} names on the lists, sorted into four groups by one question: has this name ever been in a batch sent to an agency?</p>`;
+  const seg = [
+    ['s-reach', 'Sent to an agency at least once', t.sent, 'Their name has been in at least one batch sent to an agency with openings, so they could be considered for a job. Being sent is not being hired; the data doesn\'t record who was hired.'],
+    ['s-not', 'Never sent to an agency', t.not, 'They are on a list agencies can hire from, but their name hasn\'t been in any batch yet. Most are lower on their list than the city has gone so far.'],
+    ['s-pol', 'Police officer lists: unknown', t.pol, `The city's records of batches sent for police officer stop on ${apDate(S.police.lastCert)}, so there is no way to tell for these ${spell(t.polLists)} lists.`],
+    ['s-pend', 'Lists not open for hiring yet', t.pend, `These ${fmt(t.pendLists)} lists have been published but haven't taken effect, so no agency can hire from them yet.`],
+  ];
+  $('#stand').setAttribute('aria-label', seg.map(x => `${x[1]}: ${fmt(x[2])}`).join('; '));
+  $('#stand').innerHTML = seg.map(x => `<div class="${x[0]}" style="flex:${x[2]} 1 0" data-t="${esc(x[1])}" data-n="${x[2]}" data-d="${esc(x[3])}"></div>`).join('');
+  const sw = {'s-reach': `background:${INK.sun}`, 's-not': `box-shadow:inset 0 0 0 1.5px ${INK.fg2}`, 's-pol': `background:${INK.fg2};opacity:.55`, 's-pend': `background:${INK.orange};opacity:.7`};
+  $('#standKey').innerHTML = seg.map(x => `<div><span class="lbl"><i class="sw" style="${sw[x[0]]}"></i>${x[1]}</span><b>${fmt(x[2])} names</b><span>${pct(x[2] / t.total)} of all names. ${x[3]}</span></div>`).join('');
+  $$('#stand > div').forEach(d => {
+    const show = () => { $('#standOut').innerHTML = `<b>${d.dataset.t}</b>: ${fmt(+d.dataset.n)} names, ${pct(+d.dataset.n / t.total)} of all names.`; };
+    d.addEventListener('pointerenter', show); d.addEventListener('click', show);
   });
-  for (let y = 2018; y <= TODAY.getFullYear(); y++) {
-    const xx = X(new Date(y + '-01-01'));
-    sv(s, 'line', {x1: xx, x2: xx, y1: H - m.b, y2: H - m.b + 5, stroke: INK.line});
-    if (W > 520 || y % 2 === 0) sv(s, 'text', {x: xx + 3, y: H - m.b + 18}, y);
-  }
-  sv(s, 'line', {x1: m.l, x2: W - m.r, y1: H - m.b, y2: H - m.b, stroke: INK.line});
-  // police strip
-  const py = H - 22;
-  sv(s, 'text', {x: m.l, y: H - m.b + 38, class: 'lab'}, 'Police officer lists, no certification data');
-  const pts = [];
-  const show = D.L.filter(L => L.est && scatterState.kinds[L.k]).sort((a, b) => b.n - a.n);
-  show.forEach(L => {
-    const r = R(L.n);
-    if (L.cn === 'police' || L.dp == null) {
-      if (L.cn !== 'police') return;
-      const c = sv(s, 'circle', {cx: X(L.estD), cy: py, r: Math.min(r, 14), fill: 'none', stroke: INK.fg2, 'stroke-width': 1.3});
-      pts.push({L, x: X(L.estD), y: py, r: Math.min(r, 14), el: c});
-      return;
-    }
-    const cx = X(L.estD), cy = Y(L.dp);
-    const c = sv(s, 'circle', {cx, cy, r, fill: INK[KIND[L.k].ink], 'fill-opacity': .55, stroke: INK[KIND[L.k].ink], 'stroke-width': 1,
-      style: 'mix-blend-mode:screen'});
-    pts.push({L, x: cx, y: cy, r, el: c});
-  });
-  // labels for the lists a reader will look for
-  const placed = [];
-  const narrow = W < 560;
-  pts.filter(p => p.L.cn !== 'police' && (narrow ? p.L.n >= 15000 : (p.L.n >= 9000 || (p.L.n >= 1700 && p.L.dp < 0.6))))
-    .sort((a, b) => b.L.n - a.L.n).forEach(p => {
-      const txt = sc(p.L.t) + ' ' + p.L.est.slice(0, 4);
-      const tw = txt.length * 6.6;
-      let lx = p.x + p.r + 5, anchor = 'start';
-      if (lx + tw > W - m.r) { lx = p.x - p.r - 5; anchor = 'end'; }
-      let ly = p.y + 4;
-      const bb = () => anchor === 'start' ? [lx, ly - 11, lx + tw, ly + 3] : [lx - tw, ly - 11, lx, ly + 3];
-      let tries = 0;
-      while (placed.some(b => { const a = bb(); return !(a[2] < b[0] || a[0] > b[2] || a[3] < b[1] || a[1] > b[3]); }) && tries < 12) {
-        ly += (tries % 2 ? -1 : 1) * 14 * (Math.floor(tries / 2) + 1); tries++;
-      }
-      placed.push(bb());
-      sv(s, 'text', {x: lx, y: ly, 'text-anchor': anchor, class: 'lab'}, txt);
-    });
-  const ring = sv(s, 'circle', {r: 0, fill: 'none', stroke: INK.sun, 'stroke-width': 2});
-  const out = $('#scatterOut');
-  function nearest(ev) {
-    const rect = s.getBoundingClientRect();
-    const mx = (ev.clientX - rect.left) * (W / rect.width), my = (ev.clientY - rect.top) * (H / rect.height);
-    let best = null, bd = 1e9;
-    pts.forEach(p => { const d = Math.hypot(p.x - mx, p.y - my) - p.r; if (d < bd) { bd = d; best = p; } });
-    return bd < 10 ? best : null;
-  }
-  s.addEventListener('pointermove', ev => {
-    const p = nearest(ev);
-    if (!p) { ring.setAttribute('r', 0); return; }
-    ring.setAttribute('cx', p.x); ring.setAttribute('cy', p.y); ring.setAttribute('r', p.r + 3);
-    out.innerHTML = listLine(p.L);
-    s.style.cursor = 'pointer';
-  });
-  s.addEventListener('pointerleave', () => { ring.setAttribute('r', 0); s.style.cursor = ''; });
-  s.addEventListener('click', ev => { const p = nearest(ev); if (p) openList(p.L.id); });
-  box.replaceChildren(s);
-  // key
-  const key = $('#openKey');
-  if (!key.childElementCount) {
-    Object.keys(KIND).forEach(k => {
-      const b = document.createElement('button');
-      b.className = 'chip'; b.setAttribute('aria-pressed', 'true');
-      b.innerHTML = `<span class="key" style="margin:0"><i class="c" style="background:${INK[KIND[k].ink]}"></i>${KIND[k].label} (${fmt(D.S.kinds[k].lists)})</span>`;
-      b.addEventListener('click', () => {
-        scatterState.kinds[k] = !scatterState.kinds[k];
-        b.setAttribute('aria-pressed', scatterState.kinds[k]);
-        drawScatter();
-      });
-      key.appendChild(b);
-    });
-    const p = document.createElement('span');
-    p.className = 'key'; p.innerHTML = '<i class="o"></i>Police officer, no data';
-    key.appendChild(p);
-  }
+  // the lists holding the names never sent
+  const un = D.L.filter(L => L.st !== 'pending' && L.cn !== 'police' && L.n - sentCount(L) > 0).sort((a, b) => (b.n - sentCount(b)) - (a.n - sentCount(a)));
+  const top = un.slice(0, 8), rest = un.slice(8);
+  const two = top.slice(0, 2), twoN = two.reduce((a, L) => a + L.n - sentCount(L), 0);
+  $('#unreachedTitle').textContent = `Which lists hold the ${fmt(t.not)} names never sent to an agency`;
+  $('#unreachedAside').innerHTML = `Each bar is one list, all drawn to the same scale. The outlined bar is everyone on the list; the yellow part is the people whose names have been sent to an agency at least once. ` +
+    `${fmt(twoN)} of the ${fmt(t.not)} names never sent, ${pct(twoN / t.not)}, are on two lists: ${two.map(L => `${esc(sc(L.t).toLowerCase())} (in use since ${apMonth(L.est)})`).join(' and ')}.`;
+  const rows = top.map(L => ({label: `${sc(L.t)} list from ${L.est.slice(0, 4)}${L.k === 'promo' ? ', promotional' : ''}`, title: L.tc.padStart(5, '0'),
+    v: L.n, fill: sentCount(L), ink: 'sun', val: `${fmt(L.n - sentCount(L))} never sent <small>of ${fmt(L.n)} on the list</small>`}));
+  const restN = rest.reduce((a, L) => a + L.n - sentCount(L), 0);
+  $('#unreached').innerHTML = barRows(rows, {max: Math.max(...rows.map(r => r.v))}) +
+    (rest.length ? `<p class="note" style="margin-top:8px">The other ${fmt(rest.length)} lists hold the remaining ${fmt(restN)} names never sent, ${fmt(rest[0].n - sentCount(rest[0]))} or fewer on each.</p>` : '');
+  wireLists($('#unreached'));
+  $('#policeNote').innerHTML = `How the counts are made: a name counts as sent if its rank number on its list appears in at least one batch in the city's certification records. Records for police officer stop on ${apDate(S.police.lastCert)}, which is why those ${spell(S.police.lists)} lists (${fmt(S.police.rows)} names) are shown as unknown. The <a href="methodology.html">methodology</a> has the details.`;
 }
 
 function depthText(L) {
@@ -286,10 +221,6 @@ function depthText(L) {
   if (L.dp >= 0.999) return `sent to agencies down to the last name (No. ${fmt(L.c[1])})`;
   return `sent to agencies down to No. ${fmt(L.c[1])} of ${fmt(L.mx)} (${pct(L.dp)})`;
 }
-function listLine(L) {
-  return `<b>${esc(sc(L.t))}</b>, exam ${esc(L.ex)} · ${esc(kindLabel(L))} · ${fmt(L.n)} names · took effect ${apDate(L.est)} · ${depthText(L)}`;
-}
-
 /* ------------------------------------------------------------ search and profiles */
 const ALIASES = {
   nypd: 'POLICE DEPARTMENT', police: 'POLICE DEPARTMENT', fdny: 'FIRE DEPARTMENT', fire: 'FIRE DEPARTMENT',
@@ -401,14 +332,15 @@ function listTable(lists, opts) {
     <td class="n">${fmt(L.n)}</td><td>${L.est ? apMonS(L.est) : '<small>Not yet</small>'}</td>
     <td>${L.ext ? apMonS(L.ext) + ' <small>extended</small>' : (L.ann ? apMonS(L.ann) : '—')}</td>
     <td>${depthCell(L)}</td></tr>`).join('');
-  return `<div class="tw"><table class="h"><thead><tr><th>${opts.title ? 'Title and exam' : 'Exam'}</th><th class="n">Names</th><th>Took effect</th><th>Ends</th><th>Depth reached</th></tr></thead><tbody>${rows}</tbody></table></div>` +
+  return `<div class="tw"><table class="h"><thead><tr><th>${opts.title ? 'Title and exam' : 'Exam'}</th><th class="n">Names</th><th>Took effect</th><th>Ends</th><th>Names sent down to</th></tr></thead><tbody>${rows}</tbody></table></div>` +
     (lists.length > cap ? `<div class="more"><button class="btn" type="button" data-more>Show all ${fmt(lists.length)} lists</button></div>` : '');
 }
 function depthCell(L) {
-  if (L.st === 'pending') return '<small>Not in use yet</small>';
-  if (L.cn === 'police') return '<small>No data</small>';
-  if (!L.c) return '<span class="dbar"></span><small>None sent</small>';
-  return `<span class="dbar"><i style="width:${(L.dp * 100).toFixed(1)}%"></i></span>${pct(L.dp)}`;
+  if (L.st === 'pending') return '<small>List not in use yet</small>';
+  if (L.cn === 'police') return '<small>Unknown (no records)</small>';
+  if (!L.c) return '<span class="dbar"></span><small>None sent yet</small>';
+  const words = L.dp >= 0.999 ? 'Bottom of list' : `No. ${fmt(L.c[1])} (${pct(L.dp)})`;
+  return `<span class="dbar"><i style="width:${(L.dp * 100).toFixed(1)}%"></i></span>${words}`;
 }
 function wireLists(root) {
   $$('[data-more]', root).forEach(b => b.addEventListener('click', () => {
@@ -657,14 +589,14 @@ function renderAgency(ac) {
       <div class="pblock pwide"><h3>Its promotional lists</h3>
         <p class="aside">Lists only this agency's employees could join. Click a row for its full record.</p>${listTable(promo, {title: true, kind: false})}</div>
       <div class="pblock"><h3>Open lists it has drawn from</h3>
-        <p class="aside">Names sent to this agency from open-competitive lists in use, counting a person each time they were sent.</p>
+        <p class="aside">Names the city has sent this agency from lists open to the public that are still in use. A person sent twice counts twice.</p>
         ${draws.length ? '<div class="bars">' + barRows(draws.slice(0, 15).map(d => ({label: sc(d.L.t) + ' (' + d.L.est.slice(0, 4) + ')', title: d.L.tc.padStart(5, '0'), v: d.rows, ink: 'cobalt',
           val: `${fmt(d.rows)} <small>last ${apMonS(d.last)}</small>`}))) + '</div>' + (draws.length > 15 ? `<p class="note">Top 15 of ${draws.length}.</p>` : '') : '<p class="aside">None since 2018.</p>'}</div>
       <div class="pblock"><h3>Provisional employees over time</h3>
         <p class="aside">From the city's quarterly report. The lighter line is those serving more than two years.</p>
         <div class="chart" id="pProv"></div><div class="readout" id="pProvOut"></div></div>
       <div class="pblock pwide"><h3>Titles where it has provisional employees</h3>
-        ${A.provTitles.length ? `<div class="tw"><table class="h"><thead><tr><th>Title</th><th class="n">Provisional</th><th class="n">2+ years</th><th class="n">Open-list names in use</th><th>Depth reached</th></tr></thead><tbody>${
+        ${A.provTitles.length ? `<div class="tw"><table class="h"><thead><tr><th>Title</th><th class="n">Provisional</th><th class="n">2+ years</th><th class="n">Names on public lists</th><th>Sent down to</th></tr></thead><tbody>${
           A.provTitles.slice(0, 30).map(([tc, t, n, y2]) => { const ol = titleHasOpen(tc); const dp = ol.length ? Math.max(...ol.map(L => L.dp || 0)) : null;
             return `<tr><td>${D.titles[tc] ? `<button type="button" data-title="${esc(tc)}" class="linkish">${esc(tname(tc, t))}</button>` : esc(tname(tc, t))}</td><td class="n">${fmt(n)}</td><td class="n">${fmt(y2)}</td><td class="n">${ol.length ? fmt(ol.reduce((a, L) => a + L.n, 0)) : '<small>No open list</small>'}</td><td>${dp != null ? `<span class="dbar"><i style="width:${(dp * 100).toFixed(1)}%"></i></span>${pct(dp)}` : ''}</td></tr>`; }).join('')}</tbody></table></div>
           ${A.provTitles.length > 30 ? `<p class="note">Top 30 of ${A.provTitles.length} titles.</p>` : ''}` : '<p class="aside">None in the latest report.</p>'}</div>
@@ -778,7 +710,7 @@ function writeHow() {
     ['List number', 'Rank on the list. People added after a list takes effect are slotted in with fractional numbers like 6608.5; the data doesn\'t say why each was added.'],
     ['Adjusted final average', 'The exam score plus any credits. Passing is usually 70.'],
     ['Certification', 'A batch of names DCAS sends an agency so it can fill vacancies or replace provisional employees. It may hold part of a list, the whole list or several lists. Being certified means being eligible to be considered, not being offered a job.'],
-    ['Depth reached', 'The deepest list number ever sent to an agency from a list, divided by the highest list number on it.'],
+    ['How far down names have been sent', 'The lowest-ranked list number the city has ever included in a batch sent to an agency, as a share of the whole list. 100% means the city has sent names all the way to the bottom of the list.'],
     ['Provisional employee', 'Someone holding a competitive title without having been hired off a list for it. State law limits a provisional appointment to nine months (Civil Service Law §65).'],
     ['Extension', 'Keeping a list in use past its four-year end date, which state law allows for the length of a hiring freeze.'],
     ['Group number', "A few lists carry group 001. The city's data dictionary says people in group 001 may be considered before those on the primary group 000 list."],
@@ -797,11 +729,11 @@ function writeDepth() {
   const covN = covL.length, covRows = covL.reduce((a, L) => a + L.n, 0);
   const top = D.L.filter(L => L.c && L.k === 'oc' && L.n >= 500).map(L => ({L, r: L.c[2] / L.n})).sort((a, b) => b.r - a.r).slice(0, 3);
   $('#depthText').innerHTML = `
-    <p>Each certification records the list numbers sent. The deepest number ever sent, against the last number on the list, shows how far down agencies have reached. Being sent is a chance to be considered for a job; the data doesn't show who was hired.</p>
-    <p>Of the <b>${fmt(om.lists)}</b> open-competitive lists with certification records, <b>${fmt(covN)}</b>, holding ${fmt(covRows)} names, have had at least 90% of their names sent to an agency at least once. Measured by the deepest list number reached, ${fmt(om.full)} have been sent at least 90% of the way down and ${fmt(D.L.filter(L => L.k === 'oc' && L.est && L.dp != null && L.dp >= 0.999).length)} to the very last number. The two counts can differ because some certifications skip ahead: a selective certification, for example, sends only people with particular qualifications. ${oldN ? (oldFull === oldN ? `So have all ${spell(oldN)} open lists that are more than four years old.` : `${spell(oldFull)} of the ${spell(oldN)} open lists more than four years old have been.`) : ''}</p>
-    <p>${exc.length ? `${cap(spell(exc.length))} open lists of 1,000 or more names have been sent less than 90% of the way down; they are listed below. The two largest are ${exc.slice(0, 2).map(L => `${esc(sc(L.t).toLowerCase())}, in use since ${apMonth(L.est)} and reached to No. ${fmt(L.c ? L.c[1] : 0)} of ${fmt(L.mx)}`).join(', and ')}.` : ''}</p>`;
+    <p>Each batch of names the city sends an agency (the city calls it a certification) records the rank number of every person in it. The lowest-ranked number the city has ever sent from a list shows how far down that list it has gone. Being sent means a person can be considered for a job; the data doesn't show who was hired.</p>
+    <p>There are <b>${fmt(om.lists)}</b> lists open to the public that are in use and have records of batches. On <b>${fmt(covN)}</b> of them, holding ${fmt(covRows)} names, at least 90% of the people on the list have been sent to an agency at least once. Counted instead by the lowest-ranked number ever sent, ${fmt(om.full)} lists have been sent at least 90% of the way down and ${fmt(D.L.filter(L => L.k === 'oc' && L.est && L.dp != null && L.dp >= 0.999).length)} all the way to the bottom. The two counts differ because some batches skip people: a "selective" batch, for example, includes only people with a particular skill or license. ${oldN ? (oldFull === oldN ? `Every one of the ${spell(oldN)} public lists in use for more than four years has been sent at least 90% of the way down.` : `${cap(spell(oldFull))} of the ${spell(oldN)} public lists in use for more than four years have been sent at least 90% of the way down.`) : ''}</p>
+    <p>${exc.length ? `${cap(spell(exc.length))} public lists of 1,000 or more names have been sent less than 90% of the way down; they are listed below. The two largest are ${exc.slice(0, 2).map(L => `the ${esc(sc(L.t).toLowerCase())} list, in use since ${apMonth(L.est)}, which the city has sent down to No. ${fmt(L.c ? L.c[1] : 0)} of ${fmt(L.mx)}`).join(', and ')}.` : ''}</p>`;
   $('#excBars').innerHTML = barRows(exc.map(L => ({label: `${sc(L.t)} (since ${apMonth(L.est)})`, title: L.tc.padStart(5, '0'), v: L.n, fill: L.n * (L.dp || 0), ink: 'cobalt',
-    val: `${pct(L.dp)} <small>No. ${fmt(L.c ? L.c[1] : 0)} of ${fmt(L.mx)}</small>`})));
+    val: `sent down to No. ${fmt(L.c ? L.c[1] : 0)} <small>of ${fmt(L.mx)}</small>`})));
   wireLists($('#excBars'));
   $('#timesSent').innerHTML = `Names go out more than once. On the median open list of 100 or more names, the certifications carry ${fmt1(S.certPerName.median)} entries for every name on the list. ` +
     top.map(t => `${esc(sc(t.L.t))} (${t.L.est.slice(0, 4)}): ${fmt(t.L.c[2])} entries for ${fmt(t.L.n)} names, about ${fmt(t.r)} each`).join('; ') + '.';
@@ -964,14 +896,14 @@ function writePools() {
   const sent = [];
   if (ff.length >= 2) sent.push(`The firefighter list that took effect in ${ff[ff.length - 1][0]} has ${fmt(ff[ff.length - 1][1])} names; the ${ff[ff.length - 2][0]} list had ${fmt(ff[ff.length - 2][1])}${ff.length >= 3 ? ` and the ${ff[ff.length - 3][0]} list ${fmt(ff[ff.length - 3][1])}` : ''}.`);
   if (sw.length >= 2) sent.push(`The ${sw[sw.length - 1][0]} sanitation worker list has ${fmt(sw[sw.length - 1][1])} names; the ${sw[sw.length - 2][0]} list had ${fmt(sw[sw.length - 2][1])}.`);
-  $('#poolText').innerHTML = `<p>Names on each open-competitive list, by the year the list took effect, combining lists in use with lists that have ended. ${sent.join(' ')} A list's size depends on how many people applied, how many passed and how the exam was given, so a smaller list is a smaller pool of passers, which may or may not mean less interest.</p>
+  $('#poolText').innerHTML = `<p>Names on each list open to the public, by the year the list took effect, combining lists in use with lists that have ended. ${sent.join(' ')} A list's size depends on how many people applied, how many passed and how the exam was given, so a smaller list is a smaller pool of passers, which may or may not mean less interest.</p>
     <p class="note">DCAS reports ${fmt(119117)} applications for all its exams in fiscal 2026, down from ${fmt(166000)} in fiscal 2025 (Mayor's Management Report, September 2026).</p>`;
   const yrs = D.S.police.estYears;
   const pol = P['70210'] ? Object.keys(P['70210'].years).map(Number) : [];
   const missing = [];
   if (pol.length) for (let y = Math.min(...pol); y <= Math.max(...pol); y++) if (!pol.includes(y)) missing.push(y);
   $('#poolNote').innerHTML = `Each chart has its own scale. Records of ended lists cover lists that ended from ${apMonth(D.S.ended.firstTerm)} on, so lists that took effect before about 2012 are mostly missing.` +
-    (missing.length ? ` No open-competitive police officer list that took effect in ${missing.join(', ').replace(/, (\d+)$/, ' or $1')} appears in either dataset, so those years read zero.` : '');
+    (missing.length ? ` No public police officer list that took effect in ${missing.join(', ').replace(/, (\d+)$/, ' or $1')} appears in either dataset, so those years read zero.` : '');
 }
 function drawPools() {
   const P = D.history.pools, wrap = $('#poolCharts');
@@ -1021,11 +953,11 @@ function writeScores() {
   const s1 = [];
   if (ff && at(ff, '1000')) s1.push(`Among the first 1,000 names on the firefighter list there are <b>${fmt(at(ff, '1000')[0])}</b> nonresidents; ranked without the credit there would be <b>${fmt(at(ff, '1000')[1])}</b>. A nonresident with a perfect 100 and no other credit ranks behind every resident who scored ${101 - sc_.resPoints} or better.`);
   const swL = D.byId['2060-000-000'];
-  if (sw && sw.reach && at(sw, String(sw.reach)) && swL && swL.c) s1.push(`On the sanitation worker list, agencies have reached No. ${fmt(swL.c[1])}, which covers the top ${fmt(sw.reach)} names. They include ${fmt(at(sw, String(sw.reach))[0])} nonresidents; ranked without the credit, the top ${fmt(sw.reach)} would include ${fmt(at(sw, String(sw.reach))[1])}.`);
+  if (sw && sw.reach && at(sw, String(sw.reach)) && swL && swL.c) s1.push(`On the sanitation worker list, the city has sent names down to No. ${fmt(swL.c[1])}, which covers the top ${fmt(sw.reach)} people on it. They include ${fmt(at(sw, String(sw.reach))[0])} nonresidents; ranked without the credit, the top ${fmt(sw.reach)} would include ${fmt(at(sw, String(sw.reach))[1])}.`);
   const pol = R.filter(r => r.t === 'POLICE OFFICER').map(r => r.resShare);
   $('#resText').innerHTML = `<p>Police officer, firefighter and sanitation worker exams add ${sc_.resPoints} points for city residents who qualify, according to DCAS's notices of examination; the notices cite no statute for it. Residents are ${pct(sw ? sw.resShare : 0)} of the sanitation list, ${pct(ff ? ff.resShare : 0)} of the firefighter list${pol.length ? ` and ${pct(Math.min(...pol))} to ${pct(Math.max(...pol))} of each large police officer list` : ''}.</p><p>${s1.join(' ')}</p>`;
   $('#resNote').innerHTML = `The comparison removes the ${sc_.resPoints} points from every resident and re-ranks, keeping the original order for ties; it holds everything else fixed, which real behavior wouldn't. ${fmt(sc_.resLow)} residents on police lists score below ${70 + sc_.resPoints}, which a ${sc_.resPoints}-point credit on a passing score can't produce; the data doesn't show why.`;
-  $('#resKey').innerHTML = `<span class="key"><i style="background:${INK.orange}"></i>As ranked</span><span class="key"><i style="background:${INK.cobalt}"></i>If the residency points were removed</span><span class="key"><i style="background:${INK.fg}"></i>How far agencies have reached</span>`;
+  $('#resKey').innerHTML = `<span class="key"><i style="background:${INK.orange}"></i>As ranked</span><span class="key"><i style="background:${INK.cobalt}"></i>If the residency points were removed</span><span class="key"><i style="background:${INK.fg}"></i>How far down the city has sent names</span>`;
   // ties
   const ties = D.scores.ties.slice(0, 10);
   $('#tieText').innerHTML = `<p>Scores are whole numbers on most lists, so many people share one. Within a tie the list still gives each person a different number; the data doesn't say how DCAS orders them. State law lets the city treat everyone tied with the third-highest willing candidate as reachable (Civil Service Law §61).</p>`;
@@ -1057,11 +989,11 @@ function drawResidency() {
   const R = D.scores.residency, r = R[+($('#resPick').value || 0)];
   if (!r) return;
   const pts = r.pts;
-  const marks = r.reach ? [{x: r.reach, label: `Reached so far: top ${fmt(r.reach)}`, anchor: r.reach > r.n * .7 ? 'end' : 'start'}] : [];
+  const marks = r.reach ? [{x: r.reach, label: `Sent so far: top ${fmt(r.reach)}`, anchor: r.reach > r.n * .7 ? 'end' : 'start'}] : [];
   lineChart($('#resChart'), [{pts: pts.map(p => [p[0], p[1]]), ink: 'orange'}, {pts: pts.map(p => [p[0], p[2]]), ink: 'cobalt'}],
     {pct: true, x0: 0, x1: r.n, ymax: Math.max(.05, ...pts.map(p => Math.max(p[1], p[2]))), marks, h: 240,
       onHover: xv => { const p = nearestBy(pts, xv, q => q[0]); $('#resOut').innerHTML = `Top <b>${fmt(p[0])}</b> names: ${pct(p[1], 1)} nonresidents as ranked, ${pct(p[2], 1)} if the residency points were removed`; return p[0]; }});
-  $('#resOut').innerHTML = `Across: the top N names on the list. Up: the share of those names held by nonresidents. ${r.reach ? '' : 'There are no certification records for this title since ' + apMonth(D.S.police.lastCert) + ', so no reach line.'}`;
+  $('#resOut').innerHTML = `Across: the top N names on the list. Up: the share of those names held by nonresidents. ${r.reach ? '' : 'The city has no records of batches sent for this title since ' + apMonth(D.S.police.lastCert) + ', so there is no line for how far down it has sent names.'}`;
 }
 
 /* ------------------------------------------------------------ provisionals */
@@ -1070,7 +1002,7 @@ function writeProv() {
   const S = D.S, p = S.prov, tr = D.provisionals.trend;
   const first = tr[0];
   $('#provText').innerHTML = `<p>A provisional employee holds a competitive title without having been hired off a list for it. State law allows a provisional appointment only when no appropriate list exists, caps it at nine months, and requires it to end within two months (four at most) after an appropriate list takes effect (Civil Service Law §65). The city reports provisional employees every quarter under the City Charter (§814).</p>
-    <p>The count fell from ${fmt(first.tot)} in ${apMonth(first.d)} to <b>${fmt(p.tot)}</b> on ${apDate(p.date)}. Of those, <b>${fmt(p.y2)}</b> had served more than two years. <b>${fmt(p.inOC)}</b> work in titles that have an open-competitive list in use, ${fmt(p.inOCy2)} of them for more than two years. The report doesn't say why any provisional appointment is still in place.</p>
+    <p>The count fell from ${fmt(first.tot)} in ${apMonth(first.d)} to <b>${fmt(p.tot)}</b> on ${apDate(p.date)}. Of those, <b>${fmt(p.y2)}</b> had served more than two years. <b>${fmt(p.inOC)}</b> work in titles that have a list open to the public in use, ${fmt(p.inOCy2)} of them for more than two years. The report doesn't say why any provisional appointment is still in place.</p>
     <p class="note">${p.nullRows ? `${cap(spell(p.nullRows))} rows in the source have no report date and together count ${fmt(p.nullTotal)} provisionals; they are left out.` : ''}</p>`;
   $('#provKey').innerHTML = `<span class="key"><i style="background:${INK.rose}"></i>All provisional employees</span><span class="key"><i style="background:${INK.rose};opacity:.5"></i>Serving more than two years</span>`;
   renderProvTable();
@@ -1084,7 +1016,7 @@ function tname(tc, t) {
 }
 function renderProvTable() {
   const rows = D.provisionals.titles.slice(0, provShown);
-  $('#provTable').innerHTML = `<thead><tr><th>Title</th><th class="n">Provisional</th><th class="n">2+ years</th><th class="n">Agencies</th><th class="n">Open-list names</th><th>Depth</th></tr></thead><tbody>${rows.map(r =>
+  $('#provTable').innerHTML = `<thead><tr><th>Title</th><th class="n">Provisional</th><th class="n">2+ years</th><th class="n">Agencies</th><th class="n">Names on public lists</th><th>Sent down to</th></tr></thead><tbody>${rows.map(r =>
     `<tr><td>${D.titles[r.tc] ? `<button type="button" data-title="${esc(r.tc)}" class="linkish">${esc(tname(r.tc, r.t))}</button>` : esc(tname(r.tc, r.t))}</td><td class="n">${fmt(r.tot)}</td><td class="n">${fmt(r.y2)}</td><td class="n">${fmt(r.ag)}</td><td class="n">${r.lists ? fmt(r.names) : '<small>None</small>'}</td><td>${r.dp != null ? `<span class="dbar"><i style="width:${(r.dp * 100).toFixed(1)}%"></i></span>${pct(r.dp)}` : ''}</td></tr>`).join('')}</tbody>`;
   $('#provMore').hidden = provShown >= D.provisionals.titles.length;
   wireLists($('#provTable'));
@@ -1164,7 +1096,7 @@ function renderAll() {
     (!q || L.t.toLowerCase().includes(q) || sc(L.t).toLowerCase().includes(q) || L.ex.includes(q) || agName(L.ag).toLowerCase().includes(q)));
   const key = {t: L => L.t, ag: L => kindLabel(L), n: L => L.n, est: L => L.est || '9999', end: L => L.ext || L.ann || '9999', dp: L => L.dp == null ? -1 : L.dp}[allSort.k];
   rows.sort((a, b) => { const x = key(a), y = key(b); return (x < y ? -1 : x > y ? 1 : 0) * allSort.d; });
-  const head = [['t', 'Title'], ['ag', 'Type'], ['n', 'Names'], ['est', 'Took effect'], ['end', 'Ends'], ['dp', 'Depth reached']];
+  const head = [['t', 'Title'], ['ag', 'Type'], ['n', 'Names'], ['est', 'Took effect'], ['end', 'Ends'], ['dp', 'Names sent down to']];
   $('#allTable').innerHTML = `<thead><tr>${head.map(h => `<th${h[0] === 'n' ? ' class="n"' : ''}><button type="button" data-s="${h[0]}">${h[1]}${allSort.k === h[0] ? (allSort.d > 0 ? ' ↑' : ' ↓') : ''}</button></th>`).join('')}</tr></thead><tbody>${
     rows.slice(0, allShown).map(L => `<tr class="clk" data-list="${esc(L.id)}"><td><b>${esc(sc(L.t))}</b> <small>exam ${esc(L.ex)}</small></td><td><small>${esc(kindLabel(L))}</small></td><td class="n">${fmt(L.n)}</td><td>${L.est ? apMonS(L.est) : '<small>Not yet</small>'}</td><td>${L.ext ? apMonS(L.ext) + ' <small>ext.</small>' : L.ann ? apMonS(L.ann) : '—'}</td><td>${depthCell(L)}</td></tr>`).join('')}</tbody>`;
   $$('#allTable th button').forEach(b => b.addEventListener('click', () => {

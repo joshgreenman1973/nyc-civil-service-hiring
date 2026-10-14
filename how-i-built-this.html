@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=Karla:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="house.css?v=9">
+<link rel="stylesheet" href="house.css?v=17">
 <style>
 :root{--accent:var(--sun)}
 main{max-width:860px;margin:0 auto;padding:28px clamp(16px,4vw,40px) 80px}
@@ -71,6 +71,12 @@ code{font-size:.9em;background:var(--bg2);padding:1px 5px}
 <dt>Effect</dt><dd>The page has no hiring counts. It says so.</dd>
 <dt>Who</dt><dd><span class="who claude">Claude</span></dd></dl></div>
 
+<div class="call"><h3>Open with one bar of every name, sorted by whether it has been sent</h3><dl>
+<dt>Decision</dt><dd>Replace the opening scatter chart (each list placed by when it took effect and how far down it had been sent, sized by names) with one bar of all names in four groups: sent to an agency at least once, never sent, police officer lists (unknown), and lists not in use yet. Below it, the lists that hold the names never sent, drawn to scale.</dd>
+<dt>Why</dt><dd>Josh found the scatter confusing and asked for the chart and its wording to say exactly what they show. The bar answers one plain question about each name.</dd>
+<dt>Alternative</dt><dd>Count a name as covered if it ranks at or above the lowest-ranked person ever sent from its list. That gives 263,057 instead of 247,546, because some batches skip people; the opening uses the stricter, literal count.</dd>
+<dt>Who</dt><dd><span class="who josh">Josh</span> asked for the change; <span class="who claude">Claude</span> chose the design and the count</dd></dl></div>
+
 <div class="call"><h3>Measure depth by the deepest list number sent</h3><dl>
 <dt>Decision</dt><dd>Depth = deepest certified list number ÷ highest list number, grouped at 25%, 50% and 90%.</dd>
 <dt>Why</dt><dd>Certifications go out in rank order, so the deepest number marks how far down the list agencies have reached.</dd>
@@ -128,6 +134,7 @@ code{font-size:.9em;background:var(--bg2);padding:1px 5px}
 
 <h2 id="changes">Change log</h2>
 <ul>
+<li><b>Oct. 14, 2026, later.</b> Replaced the opening scatter chart with a bar of every name, sorted by whether it has been sent to an agency, and rewrote the page's terms in plain language ("sent down to No. 6,636" instead of "depth reached").</li>
 <li><b>Oct. 14, 2026.</b> Replaced the July 13 dashboard ("How New York City hires") at the same address. Corrected: the old page called the names on active lists "waiting to be hired"; the list keeps people already hired. Removed: the old page's outcome totals, which summed the list-utilization report including 6,892 duplicated rows. Updated the exam-to-results figure to the fiscal 2026 report. Added: depth on every list, list ages and extensions, ended lists since 2016, names on each new list for 12 entry titles, scores and credits with the residency comparison, provisional employees since 2008, cross-list matches, search by title or agency with full profiles, a record for every list, a daily rebuild and a daily log of headline counts.</li>
 </ul>
 

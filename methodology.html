@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=Karla:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="house.css?v=9">
+<link rel="stylesheet" href="house.css?v=17">
 <style>
 :root{--accent:var(--sun)}
 main{max-width:860px;margin:0 auto;padding:28px clamp(16px,4vw,40px) 80px}
@@ -49,6 +49,10 @@ table.h td{vertical-align:top}
 <p>The list keeps people after they are hired or removed. Evidence: across all 1,581 lists, only 2,210 of 402,988 whole-number list positions (0.5%) are empty, and on the lists checked they roughly match the people moved to fractional positions. The 2018 conductor list, whose every list number has been sent to New York City Transit an average of eight times, is missing 27 of 31,852 positions and has 31 people in fractional ones. DCAS's own utilization reporting says people are removed from lists when appointed or for other reasons; those removals don't appear in this dataset.</p>
 
 <h2>Definitions and formulas</h2>
+<h3>Sent to an agency at least once (the opening chart)</h3>
+<p>When an agency has openings, DCAS sends it a batch of names from the top of the list; DCAS calls the batch a certification, and the certification dataset has one row per person per batch, with the person's list number. For each list in use:</p>
+<div class="f">names sent at least once = min(names on the list, number of different list numbers that appear on any batch from that list)</div>
+<p>Everyone else on a list in use counts as never sent. Police officer lists count as unknown, because the batch records for that title end on Jan. 3, 2019. Lists that have been published but haven't taken effect count separately, since no agency can hire from them. The four groups add up to every row in the active list. Being sent means a person could be considered for a job; the data doesn't record who was hired.</p>
 <h3>Status</h3>
 <ul>
 <li><b>Published, not in use</b>: no established date.</li>

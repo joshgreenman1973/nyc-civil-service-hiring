@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=Karla:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="house.css?v=12">
+<link rel="stylesheet" href="house.css?v=17">
 <style>
 :root{--accent:var(--sun)}
 [hidden]{display:none!important}
@@ -35,11 +35,27 @@ svg .grid line{stroke:var(--grid)}
 .ctl{display:flex;flex-wrap:wrap;gap:7px;align-items:center;margin:4px 0 10px}
 .ctl .lbl{font-size:var(--t-small);color:var(--fg2);margin-right:4px}
 .keyrow{display:flex;flex-wrap:wrap;gap:4px 14px;margin:2px 0 8px}
-#openKey .chip,#age .chip{display:inline-flex;align-items:center;gap:7px}
-#openKey .chip[aria-pressed=true]{background:transparent;color:var(--fg);border-color:var(--line)}
-#openKey .chip[aria-pressed=true]:hover{border-color:var(--fg)}
-#openKey .chip[aria-pressed=false]{opacity:.5}
-#openKey .chip[aria-pressed=false] i{background:transparent!important;border:1.5px solid var(--fg2)}
+#age .chip{display:inline-flex;align-items:center;gap:7px}
+/* opening chart: one bar for every name, then the lists holding the names not reached */
+.otitle{margin:0 0 4px}
+.stand{display:flex;height:54px;margin:14px 0 0;gap:2px}
+.stand>div{height:100%;cursor:default;min-width:2px}
+.stand .s-reach{background:var(--sun)}
+.stand .s-not{background:transparent;box-shadow:inset 0 0 0 1.5px var(--fg2)}
+.stand .s-pol{background:var(--fg2);opacity:.55}
+.stand .s-pend{background:var(--orange);opacity:.7}
+.stand>div:hover{outline:2px solid var(--fg);outline-offset:1px}
+.standkey{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px 22px;margin-top:12px}
+.standkey>div{border-top:1px solid var(--line2);padding-top:8px}
+.standkey .sw{display:inline-block;width:12px;height:12px;margin-right:7px;vertical-align:-1px}
+.standkey b{font-family:var(--display);font-variation-settings:'wdth' 88;font-size:1.05rem;font-variant-numeric:tabular-nums;display:block;margin:2px 0}
+.standkey span{font-size:var(--t-small);color:var(--fg2);display:block;line-height:1.45}
+.standkey .lbl{font-weight:700;color:var(--fg);font-size:15px}
+@media(max-width:760px){.standkey{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.bars.unr .bt{background:transparent;height:14px}
+.bars.unr .bt u{opacity:1;background:transparent!important;box-shadow:inset 0 0 0 1.5px var(--fg2)}
+.bars.unr .bt i{background:var(--sun)!important}
+@media(max-width:560px){.bars.unr .bl{white-space:normal}}
 .key i.o{background:transparent!important;border:1.5px solid var(--fg2);border-radius:50%}
 .key i.c{border-radius:50%}
 
@@ -139,10 +155,14 @@ button.srcbtn{background:none;cursor:pointer;font-family:inherit}
   </header>
 
   <section class="fig" id="open">
-    <div class="figcap"><span><b>Every list now in use.</b> Across: when the list took effect. Up: how far down the list agencies have been sent names; 100% means the last name. Circle size: names on the list.</span></div>
-    <div class="keyrow" id="openKey"></div>
-    <div class="chart" id="scatter"></div>
-    <div class="readout" id="scatterOut">Hover or tap a circle for its list. Click to open it.</div>
+    <h2 class="otitle">Has the city sent these names to a hiring agency yet?</h2>
+    <div id="openAside" style="max-width:76ch"></div>
+    <div class="stand" id="stand" role="img"></div>
+    <div class="standkey" id="standKey"></div>
+    <div class="readout" id="standOut"></div>
+    <h3 style="margin-top:28px" id="unreachedTitle">Which lists hold the names never sent to an agency</h3>
+    <p class="aside" id="unreachedAside"></p>
+    <div class="bars unr" id="unreached"></div>
     <p class="note" id="policeNote"></p>
   </section>
 
@@ -150,7 +170,7 @@ button.srcbtn{background:none;cursor:pointer;font-family:inherit}
     <span>On this page:</span>
     <a href="#lookup">Look up a title or agency</a>
     <a href="#how">How a list works</a>
-    <a href="#depth">How far down</a>
+    <a href="#depth">How far down lists go</a>
     <a href="#age">How long lists last</a>
     <a href="#pools">Names on new lists</a>
     <a href="#scores">Scores and credits</a>
@@ -163,7 +183,7 @@ button.srcbtn{background:none;cursor:pointer;font-family:inherit}
 
   <section class="sec lookup" id="lookup">
     <h2>Look up a job title or an agency</h2>
-    <p class="aside">Search any civil service title or city agency. A title shows every list for it, how far agencies have reached on each, which agencies have been sent names, provisional employees, how many people hold the title and its past lists. An agency shows its promotional lists, the open lists it has drawn names from, its provisional employees and its certifications by year.</p>
+    <p class="aside">Search any civil service title or city agency. A title shows every list for it, how far down each list the city has sent names to agencies, which agencies got them, provisional employees, how many people hold the title and its past lists. An agency shows its promotional lists, the open lists it has drawn names from, its provisional employees and its certifications by year.</p>
     <div class="sbox">
       <input type="search" id="q" placeholder="Try firefighter, staff analyst, Police Department, Transit…" autocomplete="off" aria-label="Search titles and agencies" role="combobox" aria-expanded="false" aria-controls="sres">
       <div class="sres" id="sres" role="listbox" hidden></div>
@@ -181,19 +201,19 @@ button.srcbtn{background:none;cursor:pointer;font-family:inherit}
   </section>
 
   <section class="sec" id="depth">
-    <h2>How far down agencies have gone</h2>
+    <h2>How far down each list the city has sent names</h2>
     <div class="prose" id="depthText"></div>
     <div class="bars" id="excBars" style="max-width:980px;margin-top:6px"></div>
     <div class="split" style="margin-top:18px">
       <div>
-        <h3>Names on each list, by how far down agencies have reached</h3>
-        <p class="aside">Bars are names on lists in use, grouped by the deepest list number ever sent to an agency.</p>
+        <h3>Names on lists in use, by how far down the city has sent names from their list</h3>
+        <p class="aside">Each bar splits the names on one kind of list by how far down their list the city has sent names: none yet, less than a quarter of the way, and so on.</p>
         <div class="chart" id="depthBars"></div>
         <div class="keyrow" id="depthKey" style="margin-top:10px"></div>
       </div>
       <div>
         <h3>Open lists by age</h3>
-        <p class="aside">Each cell counts open-competitive lists of that age that agencies have reached to that depth.</p>
+        <p class="aside">Lists open to the public, by how long they have been in use (rows) and how far down the city has sent names from them (columns). Each cell is a number of lists.</p>
         <div id="depthAge"></div>
       </div>
     </div>
@@ -274,7 +294,7 @@ button.srcbtn{background:none;cursor:pointer;font-family:inherit}
     <div class="chart" id="provTrend"></div>
     <div class="readout" id="provOut"></div>
     <h3 style="margin-top:28px">Titles with the most provisional employees</h3>
-    <p class="aside">"Open-list names" counts names on open-competitive lists for the same title that are in use now; "depth" is the furthest any of those lists has been sent. Click a title for its profile.</p>
+    <p class="aside">"Names on public lists" counts the names on lists open to the public for the same title that are in use now. "Sent down to" is how far down the furthest of those lists the city has sent names. Click a title for its profile.</p>
     <div class="tw"><table class="h" id="provTable"></table></div>
     <div class="more"><button class="btn" id="provMore">Show more titles</button></div>
   </section>
@@ -344,6 +364,6 @@ button.srcbtn{background:none;cursor:pointer;font-family:inherit}
   </div>
 </div>
 
-<script src="app.js?v=12"></script>
+<script src="app.js?v=17"></script>
 </body>
 </html>

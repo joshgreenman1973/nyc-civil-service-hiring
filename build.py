@@ -350,6 +350,14 @@ def build():
                 L["cn"] = "police"
                 L["dp"] = None
     print(f"  re-queried {requeried} lists whose exam number was reused")
+    # names "reached": at or above the deepest list number sent from the list
+    for lid, L in lists.items():
+        if L["est"] is None or L.get("cn") == "police":
+            L["rc"] = None
+        elif L.get("c"):
+            L["rc"] = sum(1 for x in by_list_rows[lid] if x[0] <= L["c"]["mx"])
+        else:
+            L["rc"] = 0
 
     # certification-level flow (one record per certification; header fields repeat on every name row)
     certs = soql(CERT, {"$select": "cert_issue_no, max(cert_date) as cd, max(request_date) as rd, "
@@ -764,6 +772,7 @@ def build():
             o[k] = iso(L[k])
         o["dp"] = L.get("dp")
         o["cn"] = L.get("cn")
+        o["rc"] = L.get("rc")
         if L.get("c"):
             c = L["c"]
             o["c"] = [c["n"], c["mx"], c["r"], iso(c["f"]), iso(c["l"])]
