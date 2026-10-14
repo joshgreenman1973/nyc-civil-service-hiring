@@ -350,6 +350,42 @@ def build():
                 L["cn"] = "police"
                 L["dp"] = None
     print(f"  re-queried {requeried} lists whose exam number was reused")
+    # how far down each list the city had sent names, month by month: the deepest list number on any
+    # batch that month, carried forward. One grouped query (about four minutes on the server).
+    fr_rows = soql(CERT, {"$select": "exam_no, list_title_code, list_agency_code, date_trunc_ym(cert_date) as m, "
+                                     "max(list_no::number) as mx",
+                          "$where": "cert_date >= '2018-01-01'",
+                          "$group": "exam_no, list_title_code, list_agency_code, m", "$limit": "100000"})
+    check(len(fr_rows) > 5000, "monthly certification frontier looks empty")
+    fr_oc, fr_pr = defaultdict(dict), defaultdict(dict)
+    for r in fr_rows:
+        if not r.get("mx") or not r.get("m"):
+            continue
+        k = ckey(r, True)
+        mon = r["m"][:7]
+        v = float(r["mx"])
+        fr_pr[k][mon] = max(fr_pr[k].get(mon, 0), v)
+        fr_oc[k[:2]][mon] = max(fr_oc[k[:2]].get(mon, 0), v)
+    for lid, L in lists.items():
+        L["fr"] = None
+        if L["est"] is None or L.get("cn") == "police" or not L.get("c"):
+            continue
+        tc5 = L["tc"].zfill(5)
+        months = fr_pr.get((L["ex"], tc5, L["ac"].zfill(3))) if L["k"] == "promo" else fr_oc.get((L["ex"], tc5))
+        if not months:
+            continue
+        e0 = L["est"].year * 12 + L["est"].month - 1
+        best, pts = 0, []
+        for mon in sorted(months):
+            y, m = int(mon[:4]), int(mon[5:7])
+            off = y * 12 + m - 1 - e0
+            if off < -1:          # a batch from before this list began: a reused exam number
+                continue
+            if months[mon] > best:
+                best = months[mon]
+                pts.append([max(0, off), best])
+        L["fr"] = pts or None
+
     # names "reached": at or above the deepest list number sent from the list
     for lid, L in lists.items():
         if L["est"] is None or L.get("cn") == "police":
@@ -773,6 +809,8 @@ def build():
         o["dp"] = L.get("dp")
         o["cn"] = L.get("cn")
         o["rc"] = L.get("rc")
+        if L.get("fr"):
+            o["fr"] = L["fr"]
         if L.get("c"):
             c = L["c"]
             o["c"] = [c["n"], c["mx"], c["r"], iso(c["f"]), iso(c["l"])]

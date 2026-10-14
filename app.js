@@ -122,6 +122,7 @@ function init() {
   const S = D.S;
   $('#asof').textContent = `Data as of ${apDate(S.asOf)}. Rebuilt daily.`;
   writeOpening();
+  writeTime();
   drawAll();
   buildSearch();
   writeHow();
@@ -145,6 +146,7 @@ function init() {
 }
 
 function drawAll() {
+  drawPaceMain();
   drawDepthBars();
   drawGantt();
   drawPastFour();
@@ -212,6 +214,134 @@ function writeOpening() {
     (rest.length ? `<p class="note" style="margin-top:8px">The other ${fmt(rest.length)} lists hold the remaining ${fmt(restN)} names never sent, ${fmt(rest[0].n - sentCount(rest[0]))} or fewer on each.</p>` : '');
   wireLists($('#unreached'));
   $('#policeNote').innerHTML = `How the counts are made: a name counts as sent if its rank number on its list appears in at least one batch in the city's certification records. Records for police officer stop on ${apDate(S.police.lastCert)}, which is why those ${spell(S.police.lists)} lists (${fmt(S.police.rows)} names) are shown as unknown. The <a href="methodology.html">methodology</a> has the details.`;
+}
+
+/* ------------------------------------------------------------ time on the list */
+const monthIdx = d => d.getFullYear() * 12 + d.getMonth();
+const monthsOn = iso => monthIdx(TODAY) - monthIdx(pd(iso));       // calendar months since a date (chart axis)
+const monthsSince = iso => Math.floor((TODAY - pd(iso)) / (30.4375 * 864e5));   // completed months, for durations in words
+const rank = n => n % 1 ? n.toLocaleString('en-US', {maximumFractionDigits: 1}) : fmt(n);
+function dur(m) {
+  const y = Math.floor(m / 12), r = m % 12;
+  const ys = y ? `${spell(y)} year${y > 1 ? 's' : ''}` : '', ms = r ? `${spell(r)} month${r > 1 ? 's' : ''}` : '';
+  return ys && ms ? `${ys}, ${ms}` : (ys || ms || 'less than a month');
+}
+const monthName = (est, off) => { const d = pd(est); const t = new Date(d.getFullYear(), d.getMonth() + off, 15); return `${MONF[t.getMonth()]} ${t.getFullYear()}`; };
+const TB = [[0, 1, 'Under 1 year'], [1, 2, '1 to 2 years'], [2, 3, '2 to 3 years'], [3, 4, '3 to 4 years'], [4, 6, '4 to 6 years'], [6, 99, 'More than 6 years']];
+function writeTime() {
+  const S = D.S, t = standing();
+  const rows = TB.map(b => ({b, sent: 0, not: 0, pol: 0, lists: []}));
+  D.L.forEach(L => {
+    if (L.st === 'pending') return;
+    const y = yearsBetween(pd(L.est), TODAY), r = rows.find(x => y >= x.b[0] && y < x.b[1]);
+    if (L.cn === 'police') r.pol += L.n; else { const x = sentCount(L); r.sent += x; r.not += L.n - x; }
+    r.lists.push(L);
+  });
+  const max = Math.max(...rows.map(r => r.sent + r.not + r.pol));
+  $('#timeAside').innerHTML = `<p class="aside">Everyone on a list was put on it the day the list took effect, so the time a name has been on a list is the time since that list took effect. (A few people were added later; the data doesn't say when.) Each bar below is the names on lists that took effect that long ago, colored the same way as the chart above: <span style="color:${INK.sun}">yellow</span> for names sent to an agency at least once, outlined for names never sent, gray for police officer lists, whose status is unknown.</p>`;
+  $('#timeBars').innerHTML = rows.map((r, i) => {
+    const tot = r.sent + r.not + r.pol, w = v => (v / max * 100).toFixed(2) + '%';
+    return `<div class="tr" data-i="${i}"><div class="tl">${r.b[2]}</div><div class="tt">
+      <div style="width:${w(r.sent)};background:${INK.sun}" title="Sent at least once: ${fmt(r.sent)}"></div>
+      <div style="width:${w(r.not)};box-shadow:inset 0 0 0 1.5px ${INK.fg2}" title="Never sent: ${fmt(r.not)}"></div>
+      <div style="width:${w(r.pol)};background:${INK.fg2};opacity:.55" title="Police officer lists: ${fmt(r.pol)}"></div></div>
+      <div class="tv">${fmt(tot)} <small>names</small></div></div>`;
+  }).join('');
+  $$('#timeBars .tr').forEach(el => {
+    const r = rows[+el.dataset.i];
+    const show = () => { $('#timeOut').innerHTML = `<b>Lists in use for ${r.b[2].toLowerCase()}</b> (${fmt(r.lists.length)} lists): ${fmt(r.sent)} names sent to an agency at least once, ${fmt(r.not)} never sent${r.pol ? `, ${fmt(r.pol)} on police officer lists (unknown)` : ''}.`; };
+    el.addEventListener('pointerenter', show); el.addEventListener('click', show);
+  });
+  // sentences
+  const notOld = D.L.filter(L => L.st !== 'pending' && L.cn !== 'police' && yearsBetween(pd(L.est), TODAY) >= 2);
+  const notOldN = notOld.reduce((a, L) => a + L.n - sentCount(L), 0);
+  const newN = rows[0].not;
+  const big = notOld.slice().sort((a, b) => (b.n - sentCount(b)) - (a.n - sentCount(a)))[0];
+  const six = rows[5], sixN = six.sent + six.not + six.pol;
+  const sixTop = six.lists.slice().sort((a, b) => b.n - a.n).slice(0, 3);
+  $('#timeText').innerHTML = `
+    <p>Of the ${fmt(t.not)} names never sent to an agency, <b>${fmt(newN)}</b> are on lists that took effect less than a year ago. <b>${fmt(notOldN)}</b> have been on their list for more than two years without being sent${big ? `, and ${fmt(big.n - sentCount(big))} of those are on one list: ${esc(sc(big.t).toLowerCase())}, in use since ${apDate(big.est)}` : ''}.</p>
+    <p>${fmt(sixN)} names have been on their list for more than six years, on ${spell(six.lists.length)} lists; the largest are ${sixTop.map(L => `${esc(sc(L.t).toLowerCase())} (${fmt(L.n)} names, since ${apMonth(L.est)})`).join(', ')}. The city has sent ${six.not && six.not < 1000 ? `all but ${fmt(six.not)}` : pct(six.sent / Math.max(1, six.sent + six.not))} of them at least once. Those lists are still in use because they were extended past four years.</p>
+    <p class="note">Not shown: ${fmt(t.pend)} names on ${fmt(t.pendLists)} lists that have been published but haven't taken effect, so no agency can hire from them yet. Those lists were published a median of ${fmt1(S.pending.medMonths)} months ago.</p>`;
+  // one list, month by month
+  $('#paceAside').innerHTML = `<p class="aside">Pick a list. The tall outlined box is the whole list, with No. 1 at the top and the last name at the bottom. Moving right is time passing, from the day the list took effect to today. The <span style="color:${INK.sun}">yellow</span> area shows how far down the list the city had sent names by each month. Anyone below the yellow at the right edge has been waiting the full width of the chart.</p>`;
+  const opts = D.L.filter(L => L.fr && L.n >= 300).sort((a, b) => b.n - a.n);
+  const sel = $('#pacePick');
+  sel.innerHTML = opts.map(L => `<option value="${esc(L.id)}">${esc(sc(L.t))}, ${L.k === 'promo' ? 'promotional, ' : ''}in use since ${apMonth(L.est)} (${fmt(L.n)} names)</option>`).join('');
+  const def = opts.find(L => L.id === '2060-000-000') || opts[0];
+  if (def) sel.value = def.id;
+  sel.addEventListener('change', drawPaceMain);
+}
+function drawPaceMain() {
+  const L = D.byId[$('#pacePick').value];
+  if (!L) return;
+  drawPace($('#pace'), L, $('#paceOut'), 300);
+  $('#paceText').innerHTML = `<p>${paceSentence(L)}</p><p class="note">A batch can skip people, so someone ranked above the yellow line may not have been sent yet. The month-by-month line comes from the city's records of batches sent since January 2018.</p>`;
+}
+function paceSentence(L) {
+  const fr = L.fr || [], now = monthsOn(L.est);
+  if (!fr.length) return `The city hasn't sent any names from this list. It has been in use for ${dur(monthsSince(L.est))}.`;
+  const f = fr[0], last = fr[fr.length - 1];
+  let out = `This list took effect in ${apMonth(L.est)}. The city first sent names from it in ${monthName(L.est, f[0])}${f[0] ? `, ${dur(f[0])} later,` : ','} going down to No. ${rank(f[1])}.`;
+  if (fr.length > 1) out += ` It went furthest in ${monthName(L.est, last[0])}, ${dur(last[0])} after the list took effect, down to No. ${rank(last[1])}.`;
+  // the longest stretch with no deeper batch
+  let gap = 0, gapAt = null;
+  for (let i = 0; i < fr.length; i++) {
+    const nx = i + 1 < fr.length ? fr[i + 1][0] : now;
+    if (nx - fr[i][0] > gap) { gap = nx - fr[i][0]; gapAt = i; }
+  }
+  if (gap >= 6 && gapAt != null && gapAt < fr.length - 1) out += ` Between ${monthName(L.est, fr[gapAt][0])} and ${monthName(L.est, fr[gapAt + 1][0])}, ${dur(gap)}, no batch went deeper than No. ${rank(fr[gapAt][1])}.`;
+  if (last[1] >= L.mx - 0.5) out += ` That is the bottom of the list.`;
+  else if (L.rc != null) out += ` The ${fmt(L.n - L.rc)} people ranked below No. ${rank(last[1])} have been on the list for ${dur(monthsSince(L.est))} without the city sending names that far down.`;
+  return out;
+}
+function drawPace(box, L, out, h) {
+  const fr = L.fr || [];
+  const W = box.clientWidth || 600, H = h || 280;
+  const narrow = W < 520;
+  const m = {l: narrow ? 64 : 78, r: 10, t: 10, b: 40};
+  const s = svg(W, H);
+  const now = Math.max(1, monthsOn(L.est));
+  const X = lin(0, now, m.l, W - m.r), Y = lin(1, Math.max(2, L.mx), m.t, H - m.b);
+  // the whole list
+  sv(s, 'rect', {x: X(0), y: Y(1), width: X(now) - X(0), height: Y(L.mx) - Y(1), fill: 'none', stroke: INK.fg2, 'stroke-width': 1.5});
+  fr.forEach((p, i) => {
+    const x0 = X(p[0]), x1 = X(i + 1 < fr.length ? fr[i + 1][0] : now);
+    sv(s, 'rect', {x: x0, y: Y(1), width: Math.max(1, x1 - x0), height: Math.max(1, Y(Math.min(p[1], L.mx)) - Y(1)), fill: INK.sun, 'fill-opacity': .9});
+  });
+  // rank labels
+  sv(s, 'text', {x: m.l - 8, y: Y(1) + 10, 'text-anchor': 'end'}, 'No. 1');
+  sv(s, 'text', {x: m.l - 8, y: Y(L.mx), 'text-anchor': 'end'}, 'No. ' + fmt(L.mx));
+  sv(s, 'text', {x: m.l - 8, y: (Y(1) + Y(L.mx)) / 2 + 4, 'text-anchor': 'end'}, 'Halfway');
+  // say in words what the two areas are
+  const last = fr.length ? fr[fr.length - 1] : null;
+  const reach = last ? Math.min(last[1], L.mx) : 0;
+  if (last) sv(s, 'text', {x: X(now) - 8, y: Math.min(Y(reach) + 16, H - m.b - 6), 'text-anchor': 'end', class: 'lab'},
+    reach >= L.mx - 0.5 ? 'Sent all the way to the bottom' : `Sent so far: down to No. ${rank(reach)}`);
+  if (L.rc != null && L.n - L.rc > 0 && Y(L.mx) - Y(reach) > 60)
+    sv(s, 'text', {x: (X(0) + X(now)) / 2, y: (Y(reach) + Y(L.mx)) / 2 + 4, 'text-anchor': 'middle', class: 'lab'},
+      narrow ? `Not sent yet: ${fmt(L.n - L.rc)} people` : `Not sent yet: the ${fmt(L.n - L.rc)} people ranked below No. ${rank(reach)}`);
+  // time axis: years since the list took effect
+  const step = narrow ? (now > 48 ? 24 : 12) : (now > 48 ? 12 : 6);
+  for (let mo = 0; mo <= now; mo += step) {
+    sv(s, 'line', {x1: X(mo), x2: X(mo), y1: H - m.b, y2: H - m.b + 5, stroke: INK.line});
+    sv(s, 'text', {x: X(mo), y: H - m.b + 18, 'text-anchor': mo === 0 ? 'start' : 'middle'}, mo === 0 ? apMonS(L.est) : (mo % 12 ? `${mo} mo.` : `${mo / 12} yr${mo > 12 ? 's' : ''}`));
+  }
+  sv(s, 'text', {x: X(now), y: H - m.b + 32, 'text-anchor': 'end', class: 'lab'}, 'Today');
+  const vl = sv(s, 'line', {y1: m.t, y2: H - m.b, stroke: INK.fg, 'stroke-width': 1, opacity: 0});
+  const move = ev => {
+    const rect = s.getBoundingClientRect();
+    const mx = (ev.clientX - rect.left) * (W / rect.width);
+    const mo = Math.max(0, Math.min(now, Math.round((mx - m.l) / (W - m.l - m.r) * now)));
+    let rk = 0;
+    fr.forEach(p => { if (p[0] <= mo) rk = p[1]; });
+    vl.setAttribute('x1', X(mo)); vl.setAttribute('x2', X(mo)); vl.setAttribute('opacity', .8);
+    out.innerHTML = rk ? `By <b>${monthName(L.est, mo)}</b>, ${dur(mo)} after the list took effect, the city had sent names down to <b>No. ${rank(rk)}</b>, ${pct(Math.min(1, rk / L.mx))} of the way down.`
+      : `By <b>${monthName(L.est, mo)}</b>, ${dur(mo)} after the list took effect, the city had not sent any names from it.`;
+  };
+  s.addEventListener('pointermove', move); s.addEventListener('click', move);
+  box.replaceChildren(s);
+  out.innerHTML = 'Hover or tap the chart to read any month.';
 }
 
 function depthText(L) {
@@ -644,7 +774,7 @@ function openList(id, fromRoute) {
     ['Names on the list', `${fmt(L.n)}${L.ins ? `, including ${fmt(L.ins)} added after it took effect (they carry fractional list numbers)` : ''}`],
     ['Status', status],
     ['Published', L.pub ? apDate(L.pub) : '<small>Not recorded</small>'],
-    ['Took effect', L.est ? apDate(L.est) : '<small>Not yet</small>'],
+    ['Took effect', L.est ? `${apDate(L.est)}. Everyone on the list has been on it since then: ${dur(monthsSince(L.est))}.` : '<small>Not yet</small>'],
     ['Four-year end date', L.ann ? apDate(L.ann) : '—'],
     ['Extended to', L.ext ? apDate(L.ext) + (L.est ? ` (${fmt1(yearsBetween(pd(L.est), pd(L.ext)))} years in all)` : '') : '<small>No extension</small>'],
     ['Scores', `lowest ${L.sc[0]}, median ${L.sc[1]}, highest ${L.sc[2]}`],
@@ -667,6 +797,7 @@ function openList(id, fromRoute) {
       val: `${fmt(d[1])} <small>${fmt(d[2])} people · last ${apMonS(d[3])}</small>`}))) + '</div>';
     if (L.dr.length > 12) body += `<p class="note">Top 12 of ${L.dr.length} agencies.</p>`;
   }
+  if (L.fr) body += `<div class="narr"><h4>How far down this list the city has gone, month by month</h4><p>${paceSentence(L)}</p></div><div class="chart" id="dPace"></div><div class="readout" id="dPaceOut"></div>`;
   body += `<div class="narr"><h4>Scores</h4></div><div class="chart" id="dHist"></div><div class="readout" id="dHistOut"></div>`;
   body += `<div class="narr"><h4>More</h4><p>`;
   if (T) body += `<button class="srcbtn" type="button" data-title="${esc(L.tc.padStart(5, '0'))}">Everything on ${esc(sc(L.t))}</button> `;
@@ -678,6 +809,7 @@ function openList(id, fromRoute) {
   const d = $('#drawer');
   d.classList.add('open'); d.setAttribute('aria-hidden', 'false');
   document.body.style.overflow = 'hidden';
+  if (L.fr) requestAnimationFrame(() => drawPace($('#dPace'), L, $('#dPaceOut'), 220));
   requestAnimationFrame(() => vbars($('#dHist'), S.scores.bins.map((b, i) => ({x: b, xl: ['<70', '70', '75', '80', '85', '90', '95', '100', '>100', '>105', '>110'][i], v: L.h[i], ink: KIND[L.k].ink,
     tip: `<b>${b}</b>: ${fmt(L.h[i])} names`})), {out: $('#dHistOut'), h: 160}));
   if (!fromRoute) history.replaceState(null, '', '#list=' + id);

@@ -53,6 +53,11 @@ table.h td{vertical-align:top}
 <p>When an agency has openings, DCAS sends it a batch of names from the top of the list; DCAS calls the batch a certification, and the certification dataset has one row per person per batch, with the person's list number. For each list in use:</p>
 <div class="f">names sent at least once = min(names on the list, number of different list numbers that appear on any batch from that list)</div>
 <p>Everyone else on a list in use counts as never sent. Police officer lists count as unknown, because the batch records for that title end on Jan. 3, 2019. Lists that have been published but haven't taken effect count separately, since no agency can hire from them. The four groups add up to every row in the active list. Being sent means a person could be considered for a job; the data doesn't record who was hired.</p>
+<h3>How long a name has been on its list</h3>
+<p>Everyone on a list is placed on it when the list takes effect (its established date), so time on the list is the time from that date to the build date, in completed months. People added later, who carry fractional list numbers, have been on for less time; the data doesn't record when they were added. Lists not yet in effect are left out of this count and described separately.</p>
+<h3>How far down a list the city had gone, month by month</h3>
+<p>One grouped query to the certification dataset returns, for each list and calendar month since January 2018, the lowest-ranked list number on any batch that month. Carrying the deepest number forward month by month gives how far down the list the city had sent names by each month. Months more than one month before the list took effect are ignored, so a reused exam number can't leak in. A batch can skip people, so someone ranked above that line may not have been sent.</p>
+<div class="f">people below the line = names on the list ranked below the deepest list number ever sent</div>
 <h3>Status</h3>
 <ul>
 <li><b>Published, not in use</b>: no established date.</li>

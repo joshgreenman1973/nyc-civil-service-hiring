@@ -77,6 +77,12 @@ code{font-size:.9em;background:var(--bg2);padding:1px 5px}
 <dt>Alternative</dt><dd>Count a name as covered if it ranks at or above the lowest-ranked person ever sent from its list. That gives 263,057 instead of 247,546, because some batches skip people; the opening uses the stricter, literal count.</dd>
 <dt>Who</dt><dd><span class="who josh">Josh</span> asked for the change; <span class="who claude">Claude</span> chose the design and the count</dd></dl></div>
 
+<div class="call"><h3>Show how long names have been on their lists</h3><dl>
+<dt>Decision</dt><dd>Add a section that groups the names on lists in use by how long their list has been in effect, colored by whether they've been sent, and a month-by-month chart for any list showing how far down the city had sent names by each month.</dd>
+<dt>Why</dt><dd>Josh asked what the data could say about how long names have been on the lists. The data has each list's start date and the date of every batch, so both can be stated exactly; it has no date for when an individual was added later, or first sent.</dd>
+<dt>Alternative</dt><dd>Each person's first date sent, from a query of every list number on every batch. That query would take far longer than the daily build allows, so the page uses the month-by-month deepest number instead and says that a batch can skip people.</dd>
+<dt>Who</dt><dd><span class="who josh">Josh</span> asked; <span class="who claude">Claude</span> chose the measures</dd></dl></div>
+
 <div class="call"><h3>Measure depth by the deepest list number sent</h3><dl>
 <dt>Decision</dt><dd>Depth = deepest certified list number ÷ highest list number, grouped at 25%, 50% and 90%.</dd>
 <dt>Why</dt><dd>Certifications go out in rank order, so the deepest number marks how far down the list agencies have reached.</dd>
@@ -134,6 +140,7 @@ code{font-size:.9em;background:var(--bg2);padding:1px 5px}
 
 <h2 id="changes">Change log</h2>
 <ul>
+<li><b>Oct. 14, 2026, evening.</b> Added "How long have these names been on their lists?": names grouped by how long their list has been in effect, and a month-by-month chart of how far down any list the city has sent names. List records now say how long everyone has been on the list.</li>
 <li><b>Oct. 14, 2026, later.</b> Replaced the opening scatter chart with a bar of every name, sorted by whether it has been sent to an agency, and rewrote the page's terms in plain language ("sent down to No. 6,636" instead of "depth reached").</li>
 <li><b>Oct. 14, 2026.</b> Replaced the July 13 dashboard ("How New York City hires") at the same address. Corrected: the old page called the names on active lists "waiting to be hired"; the list keeps people already hired. Removed: the old page's outcome totals, which summed the list-utilization report including 6,892 duplicated rows. Updated the exam-to-results figure to the fiscal 2026 report. Added: depth on every list, list ages and extensions, ended lists since 2016, names on each new list for 12 entry titles, scores and credits with the residency comparison, provisional employees since 2008, cross-list matches, search by title or agency with full profiles, a record for every list, a daily rebuild and a daily log of headline counts.</li>
 </ul>

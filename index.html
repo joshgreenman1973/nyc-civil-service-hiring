@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=Karla:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="house.css?v=17">
+<link rel="stylesheet" href="house.css?v=21">
 <style>
 :root{--accent:var(--sun)}
 [hidden]{display:none!important}
@@ -56,6 +56,15 @@ svg .grid line{stroke:var(--grid)}
 .bars.unr .bt u{opacity:1;background:transparent!important;box-shadow:inset 0 0 0 1.5px var(--fg2)}
 .bars.unr .bt i{background:var(--sun)!important}
 @media(max-width:560px){.bars.unr .bl{white-space:normal}}
+/* time on list: one stacked bar per age group, all on one scale */
+.tbars{display:grid;gap:9px;margin:16px 0 4px;font-size:14.5px;max-width:1100px}
+.tr{display:grid;grid-template-columns:minmax(110px,150px) minmax(0,1fr) auto;gap:0 14px;align-items:center}
+.tbars .tl{font-weight:700}
+.tbars .tt{display:flex;height:22px;gap:2px}
+.tbars .tt>div{height:100%;min-width:1px}
+.tbars .tv{font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+.tbars .tv small{color:var(--fg2)}
+@media(max-width:560px){.tr{grid-template-columns:minmax(0,1fr) auto}.tbars .tt{grid-column:1/-1;grid-row:2;margin-top:4px}}
 .key i.o{background:transparent!important;border:1.5px solid var(--fg2);border-radius:50%}
 .key i.c{border-radius:50%}
 
@@ -166,8 +175,23 @@ button.srcbtn{background:none;cursor:pointer;font-family:inherit}
     <p class="note" id="policeNote"></p>
   </section>
 
+  <section class="fig" id="time" style="border-top:1px solid var(--line2);margin-top:26px">
+    <h2 class="otitle">How long have these names been on their lists?</h2>
+    <div id="timeAside" style="max-width:76ch"></div>
+    <div class="tbars" id="timeBars"></div>
+    <div class="readout" id="timeOut"></div>
+    <div class="prose" id="timeText"></div>
+    <h3 style="margin-top:30px">How far down one list the city has gone, month by month</h3>
+    <div id="paceAside" style="max-width:76ch"></div>
+    <div class="ctl"><span class="lbl">List</span><select id="pacePick" aria-label="Choose a list" style="max-width:100%"></select></div>
+    <div class="chart" id="pace"></div>
+    <div class="readout" id="paceOut"></div>
+    <div class="prose" id="paceText"></div>
+  </section>
+
   <nav class="jump" aria-label="Sections">
     <span>On this page:</span>
+    <a href="#time">How long names have been on lists</a>
     <a href="#lookup">Look up a title or agency</a>
     <a href="#how">How a list works</a>
     <a href="#depth">How far down lists go</a>
@@ -364,6 +388,6 @@ button.srcbtn{background:none;cursor:pointer;font-family:inherit}
   </div>
 </div>
 
-<script src="app.js?v=17"></script>
+<script src="app.js?v=21"></script>
 </body>
 </html>
