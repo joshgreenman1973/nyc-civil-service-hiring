@@ -18,7 +18,7 @@ distinct people and cross-list overlap) but never written out.
 Run:  python3 build.py            (downloads are cached in .cache/ by dataset update time)
 Exit code is non-zero, and nothing is written, if any source looks empty or malformed.
 """
-import csv, datetime, json, math, os, statistics, sys, time, urllib.error, urllib.parse, urllib.request
+import csv, datetime, http.client, json, math, os, statistics, sys, time, urllib.error, urllib.parse, urllib.request
 from collections import Counter, defaultdict
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -71,7 +71,7 @@ def get(url, tries=6, timeout=900):
                 time.sleep(20 * (i + 1))
                 continue
             raise
-        except (urllib.error.URLError, TimeoutError, ConnectionError) as e:
+        except (urllib.error.URLError, TimeoutError, ConnectionError, http.client.IncompleteRead) as e:
             last = e
             if i < tries - 1:
                 time.sleep(20 * (i + 1))
