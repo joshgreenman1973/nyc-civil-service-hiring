@@ -59,7 +59,8 @@ def check(cond, msg):
 
 # ------------------------------------------------------------------ fetching
 def get(url, tries=6, timeout=900):
-    """GET with backoff. Socrata answers anonymous throttling with 403 as well as 429."""
+    """GET with backoff. Socrata answers anonymous throttling with 403 as well as 429,
+    and briefly answers 410 for a CSV export it is rebuilding right after a dataset update."""
     last = None
     for i in range(tries):
         try:
@@ -67,7 +68,7 @@ def get(url, tries=6, timeout=900):
                 return r.read()
         except urllib.error.HTTPError as e:
             last = e
-            if e.code in (403, 429, 500, 502, 503, 504) and i < tries - 1:
+            if e.code in (403, 410, 429, 500, 502, 503, 504) and i < tries - 1:
                 time.sleep(20 * (i + 1))
                 continue
             raise
